@@ -225,11 +225,14 @@ export default function App() {
 
       <main className="w-full max-w-2xl lg:max-w-3xl z-10 px-6 sm:px-8 pb-16 md:pb-24 flex flex-col items-center">
         {/* Highlighted CTA - Main Website & Navigate */}
-        <motion.div
+        <motion.a
+          href="https://bonesandbru.com/"
+          target="_blank"
+          rel="noopener noreferrer"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="block w-full mb-10 md:mb-14 p-8 sm:p-10 md:p-14 rounded-[3rem] bg-gradient-to-br from-brand-orange via-brand-pink to-brand-orange bg-[length:200%_200%] animate-gradient text-white shadow-[0_20px_50px_-12px_rgba(236,72,153,0.4)] relative overflow-hidden group text-center border border-white/20 transition-all"
+          className="block w-full cursor-pointer hover:scale-[1.02] active:scale-[0.98] mb-10 md:mb-14 p-8 sm:p-10 md:p-14 rounded-[3rem] bg-gradient-to-br from-brand-orange via-brand-pink to-brand-orange bg-[length:200%_200%] animate-gradient text-white shadow-[0_20px_50px_-12px_rgba(236,72,153,0.4)] relative overflow-hidden group text-center border border-white/20 transition-all"
         >
           <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-125 group-hover:rotate-12 transition-all duration-700 pointer-events-none">
             <Coffee className="w-32 h-32 md:w-48 md:h-48" />
@@ -247,24 +250,16 @@ export default function App() {
             </p>
             
             <div className="flex flex-wrap items-center justify-center gap-4 w-full">
-              <a href="https://bonesandbru.com/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-3 bg-white text-brand-orange px-6 py-3 md:px-8 md:py-4 rounded-full font-bold text-base md:text-xl shadow-xl hover:shadow-2xl transition-all hover:-translate-y-1">
+              <div className="inline-flex items-center justify-center gap-3 bg-white text-brand-orange px-6 py-3 md:px-8 md:py-4 rounded-full font-bold text-base md:text-xl shadow-xl hover:shadow-2xl transition-all hover:-translate-y-1">
                 <div className="w-6 h-6 md:w-8 md:h-8 rounded-full overflow-hidden bg-white flex items-center justify-center shrink-0">
                   <img src={logo} alt="Logo" className="w-full h-full object-cover" />
                 </div>
                 <span>Order</span>
                 <ExternalLink className="w-5 h-5 md:w-6 md:h-6 ml-1" />
-              </a>
-              
-              <button 
-                onClick={() => setShowVideoModal(true)} 
-                className="inline-flex items-center justify-center gap-3 bg-brand-pink text-white px-6 py-3 md:px-8 md:py-4 rounded-full font-bold text-base md:text-xl shadow-xl hover:shadow-2xl transition-all hover:-translate-y-1 border-2 border-white/20"
-              >
-                <span>Walkthrough</span>
-                <Play className="w-5 h-5 md:w-6 md:h-6 ml-1 fill-current" />
-              </button>
+              </div>
             </div>
           </div>
-        </motion.div>
+        </motion.a>
 
         {/* Social Links Grid - Front and Centre */}
         <div className="grid grid-cols-4 gap-2 sm:gap-4 md:gap-5 mb-12 md:mb-16 w-full">
@@ -291,6 +286,22 @@ export default function App() {
           ))}
         </div>
 
+        {/* Walkthrough Button Below Social Grid */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7 }}
+          className="w-full flex justify-center mb-12 md:mb-16"
+        >
+          <button 
+            onClick={() => setShowVideoModal(true)} 
+            className="w-full sm:max-w-md inline-flex items-center justify-center gap-3 bg-gradient-to-r from-brand-pink to-[#E84E8A] text-white px-6 py-4 md:px-10 md:py-5 rounded-full font-bold text-lg md:text-xl shadow-xl hover:shadow-2xl transition-all hover:-translate-y-1 hover:scale-105 active:scale-95 border-2 border-white/20 dark:border-stone-700/50"
+          >
+            <Play className="w-6 h-6 md:w-7 md:h-7 fill-current" />
+            <span>Virtual Walkthrough</span>
+          </button>
+        </motion.div>
+
         {/* Footer / Thank You */}
         <motion.footer 
           initial={{ opacity: 0 }}
@@ -300,7 +311,7 @@ export default function App() {
         >
           <div className="h-px w-16 md:w-20 bg-stone-200 dark:bg-stone-800 mx-auto mb-6 md:mb-8" />
           <p className="font-serif italic text-stone-500 dark:text-stone-400 text-lg md:text-xl mb-8">
-            "Thank you kindly for your support of small business."
+            "Thank you for supporting our small business!"
           </p>
           
           {/* Address Bar / Navigate */}
@@ -363,7 +374,7 @@ export default function App() {
                   className="flex items-center gap-3 px-6 py-3 md:px-8 md:py-4 rounded-full bg-brand-orange/10 dark:bg-brand-orange/20 hover:bg-brand-orange text-brand-orange hover:text-white border-2 border-brand-orange/50 hover:border-brand-orange transition-all group shadow-sm hover:shadow-md"
                 >
                   <UserPlus className="w-5 h-5 md:w-6 md:h-6" />
-                  <span className="text-sm md:text-lg font-bold whitespace-nowrap">Save John</span>
+                  <span className="text-sm md:text-lg font-bold whitespace-nowrap">Save Owner Contact</span>
                 </a>
                 <a 
                   href={`data:text/vcard;charset=utf-8,${encodeURIComponent(`BEGIN:VCARD\nVERSION:3.0\nFN:Bones & Bru\nORG:Bones & Bru\nTEL:7605096910\nEMAIL:johngagne@bonesandbru.com\nURL:https://bonesandbru.com\nADR:;;410 W 1st St #104;Tempe;AZ;85281;USA\nEND:VCARD`)}`}
@@ -371,9 +382,24 @@ export default function App() {
                   className="flex items-center gap-3 px-6 py-3 md:px-8 md:py-4 rounded-full bg-brand-pink/10 dark:bg-brand-pink/20 hover:bg-brand-pink text-brand-pink hover:text-white border-2 border-brand-pink/50 hover:border-brand-pink transition-all group shadow-sm hover:shadow-md"
                 >
                   <UserPlus className="w-5 h-5 md:w-6 md:h-6" />
-                  <span className="text-sm md:text-lg font-bold whitespace-nowrap">Save Shop</span>
+                  <span className="text-sm md:text-lg font-bold whitespace-nowrap">Save Shop Contact</span>
                 </a>
               </div>
+            </div>
+          </div>
+
+          {/* QR Code */}
+          <div className="mt-12 flex justify-center w-full">
+            <div className="p-4 bg-white dark:bg-stone-800 rounded-3xl shadow-xl border border-stone-200/50 dark:border-stone-700/50 hover:scale-105 transition-transform duration-300 flex flex-col items-center">
+              <img 
+                src="/qr.jpeg" 
+                alt="Bones & Bru QR Code" 
+                className="w-48 h-48 md:w-56 md:h-56 rounded-2xl object-cover mb-3 shadow-inner"
+                loading="lazy"
+              />
+              <span className="text-stone-500 dark:text-stone-400 font-black uppercase tracking-[0.2em] text-[10px] md:text-xs">
+                Scan to Share
+              </span>
             </div>
           </div>
         </motion.footer>
