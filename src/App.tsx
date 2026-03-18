@@ -24,10 +24,14 @@ import {
 } from "lucide-react";
 
 import logo from "./assets/logo.webp";
-import bg1 from "./assets/bg1.webp";
-import bg2 from "./assets/bg2.webp";
 
-const BACKGROUNDS = [bg1, bg2];
+const BACKGROUNDS = [
+  { type: 'image', src: '/bg1.jpg' },
+  { type: 'image', src: '/bg2.jpg' },
+  { type: 'image', src: '/bru.jpg' },
+  { type: 'image', src: '/shop.jpg' },
+  { type: 'video', src: '/video.mp4' },
+];
 
 export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -37,7 +41,7 @@ export default function App() {
   useEffect(() => {
     // Preload images to prevent glitching
     const preloadImages = async () => {
-      const images = [logo, bg1, bg2];
+      const images = [logo, ...BACKGROUNDS.filter(b => b.type === 'image').map(b => b.src)];
       const promises = images.map((src) => {
         return new Promise((resolve, reject) => {
           const img = new Image();
@@ -60,7 +64,7 @@ export default function App() {
   useEffect(() => {
     const timer = setInterval(() => {
       setBgIndex((prev) => (prev + 1) % BACKGROUNDS.length);
-    }, 4000);
+    }, 8000);
     return () => clearInterval(timer);
   }, []);
 
@@ -106,23 +110,38 @@ export default function App() {
           {/* Hero Header Section with Scrolling Background */}
           <div className="relative w-full h-[50vh] min-h-[420px] max-h-[600px] flex items-center justify-center overflow-hidden mb-6 md:mb-10 rounded-b-[2.5rem] md:rounded-b-[4rem] shadow-xl">
             {/* Sliding Background */}
-            <div className="absolute inset-0 overflow-hidden bg-stone-900 border-b-0">
-              <AnimatePresence initial={false} mode="popLayout">
-                <motion.img
+            <div className="absolute inset-0 overflow-hidden bg-stone-900 border-b-0 flex items-center justify-center">
+              <AnimatePresence initial={false} mode="wait">
+                <motion.div
                   key={bgIndex}
-                  src={BACKGROUNDS[bgIndex]}
-                  initial={{ x: "100%", opacity: 0.8 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  exit={{ x: "-100%", opacity: 0.8 }}
-                  transition={{ duration: 1.2, ease: "easeInOut" }}
-                  className="absolute inset-0 w-full h-full object-cover origin-center"
-                  alt="Background"
-                />
+                  initial={{ opacity: 0, scale: 1.05 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 1.5, ease: "easeInOut" }}
+                  className="absolute inset-0 w-full h-full flex items-center justify-center"
+                >
+                  {BACKGROUNDS[bgIndex].type === 'video' ? (
+                    <video
+                      src={BACKGROUNDS[bgIndex].src}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      className="absolute inset-0 w-full h-full object-contain"
+                    />
+                  ) : (
+                    <img
+                      src={BACKGROUNDS[bgIndex].src}
+                      className="absolute inset-0 w-full h-full object-contain"
+                      alt="Background"
+                    />
+                  )}
+                </motion.div>
               </AnimatePresence>
             </div>
         
         {/* Tint Overlay */}
-        <div className="absolute inset-0 bg-stone-900/60 dark:bg-stone-900/80 backdrop-blur-[2px] z-10" />
+        <div className="absolute inset-0 bg-stone-900/60 dark:bg-stone-900/80 z-10 pointer-events-none" />
         
         {/* Gradient fade to bottom */}
         <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[var(--color-bg-light)] dark:from-[var(--color-bg-dark)] to-transparent z-10" />
@@ -311,27 +330,27 @@ export default function App() {
           </motion.a>
 
           {/* Owner Details & Small Contact Links */}
-          <div className="flex flex-col items-center justify-center gap-5">
-            <div className="flex items-center justify-center gap-3 md:gap-4 text-stone-500 dark:text-stone-400 text-xs md:text-sm uppercase tracking-[0.3em] font-bold">
+          <div className="flex flex-col items-center justify-center gap-6 md:gap-8 p-6 md:p-10 border-[3px] border-brand-orange/40 dark:border-brand-orange/20 rounded-[2.5rem] bg-white/40 dark:bg-stone-900/40 backdrop-blur-sm w-full max-w-lg mx-auto shadow-lg hover:border-brand-orange/80 transition-colors">
+            <div className="flex items-center justify-center gap-4 md:gap-5 text-stone-600 dark:text-stone-300 text-sm md:text-lg uppercase tracking-[0.3em] font-black">
               <span>John Gagne</span>
-              <span className="w-1.5 md:w-2 h-1.5 md:h-2 bg-brand-orange rounded-full" />
+              <span className="w-2 md:w-3 h-2 md:h-3 bg-brand-orange rounded-full" />
               <span>Owner</span>
             </div>
             
-            <div className="flex items-center gap-5 mt-2">
+            <div className="flex items-center gap-6 md:gap-8 mt-2 w-full justify-center">
               <a 
                 href="tel:7605096910" 
-                className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/50 dark:bg-stone-800/50 hover:bg-white dark:hover:bg-stone-800 border border-stone-200/50 dark:border-stone-700/50 text-stone-500 hover:text-brand-orange transition-all group"
+                className="flex items-center gap-3 px-8 py-4 md:px-10 md:py-5 rounded-full bg-white/70 dark:bg-stone-800/70 hover:bg-white dark:hover:bg-stone-800 border-2 border-stone-200/80 dark:border-stone-700/80 text-stone-600 hover:text-brand-orange hover:border-brand-orange/50 transition-all group shadow-sm hover:shadow-md"
               >
-                <PhoneCall className="w-5 h-5 group-hover:animate-pulse" />
-                <span className="text-sm font-semibold">Call</span>
+                <PhoneCall className="w-6 h-6 md:w-7 md:h-7 group-hover:animate-pulse" />
+                <span className="text-lg md:text-xl font-bold">Call</span>
               </a>
               <a 
                 href="mailto:johngagne@bonesandbru.com" 
-                className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/50 dark:bg-stone-800/50 hover:bg-white dark:hover:bg-stone-800 border border-stone-200/50 dark:border-stone-700/50 text-stone-500 hover:text-brand-pink transition-all group"
+                className="flex items-center gap-3 px-8 py-4 md:px-10 md:py-5 rounded-full bg-white/70 dark:bg-stone-800/70 hover:bg-white dark:hover:bg-stone-800 border-2 border-stone-200/80 dark:border-stone-700/80 text-stone-600 hover:text-brand-pink hover:border-brand-pink/50 transition-all group shadow-sm hover:shadow-md"
               >
-                <Mailbox className="w-5 h-5 group-hover:animate-bounce" />
-                <span className="text-sm font-semibold">Email</span>
+                <Mailbox className="w-6 h-6 md:w-7 md:h-7 group-hover:animate-bounce" />
+                <span className="text-lg md:text-xl font-bold">Email</span>
               </a>
             </div>
           </div>
