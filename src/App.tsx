@@ -1,0 +1,323 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "motion/react";
+import { 
+  Instagram, 
+  Facebook, 
+  MessageSquare, 
+  Star,
+  Heart,
+  Moon,
+  Sun,
+  ExternalLink,
+  Coffee,
+  PawPrint,
+  Bone,
+  Dog,
+  Map,
+  PhoneCall,
+  Mailbox
+} from "lucide-react";
+
+import logo from "./assets/logo.png";
+import bg1 from "./assets/bg1.jpg";
+import bg2 from "./assets/bg2.jpg";
+
+const BACKGROUNDS = [bg1, bg2];
+
+export default function App() {
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [bgIndex, setBgIndex] = useState(0);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    // Preload images to prevent glitching
+    const preloadImages = async () => {
+      const images = [logo, bg1, bg2];
+      const promises = images.map((src) => {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.src = src;
+          img.onload = resolve;
+          img.onerror = reject;
+        });
+      });
+      try {
+        await Promise.all(promises);
+        setIsLoaded(true);
+      } catch (err) {
+        console.error("Failed to preload images", err);
+        setIsLoaded(true); // Still show the app even if some images fail
+      }
+    };
+    preloadImages();
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setBgIndex((prev) => (prev + 1) % BACKGROUNDS.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDarkMode]);
+
+  const socialLinks = [
+    { name: "Review", icon: <Star className="w-5 h-5 md:w-6 md:h-6" />, url: "https://share.google/ywUaCuyd8boFskL5d", color: "bg-brand-orange" },
+    { name: "Instagram", icon: <Instagram className="w-5 h-5 md:w-6 md:h-6" />, url: "https://www.instagram.com/bonesandbru?igsh=NWY3Znc0OTZ4cmty", color: "bg-brand-pink" },
+    { name: "Facebook", icon: <Facebook className="w-5 h-5 md:w-6 md:h-6" />, url: "https://www.facebook.com/share/14WviUCEUSy/", color: "bg-blue-600" },
+    { name: "TikTok", icon: <MessageSquare className="w-5 h-5 md:w-6 md:h-6" />, url: "https://www.tiktok.com/@bonesandbru", color: "bg-black" },
+  ];
+
+  return (
+    <AnimatePresence>
+      {!isLoaded ? (
+        <motion.div
+          key="loader"
+          initial={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[100] bg-stone-100 dark:bg-stone-900 flex items-center justify-center"
+        >
+          <motion.div
+            animate={{ scale: [1, 1.1, 1], opacity: [0.5, 1, 0.5] }}
+            transition={{ repeat: Infinity, duration: 1.5 }}
+            className="w-24 h-24 rounded-full bg-brand-orange/20 flex items-center justify-center p-4"
+          >
+            <img src={logo} alt="Loading..." className="w-full h-full object-contain opacity-50" />
+          </motion.div>
+        </motion.div>
+      ) : (
+        <motion.div 
+          key="content"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="min-h-screen flex flex-col items-center relative overflow-hidden bg-[var(--color-bg-light)] dark:bg-[var(--color-bg-dark)] transition-colors duration-500"
+        >
+          {/* Hero Header Section with Scrolling Background */}
+          <div className="relative w-full h-[45vh] min-h-[380px] flex items-center justify-center overflow-hidden mb-8 md:mb-12">
+            {/* Sliding Background */}
+            <div className="absolute inset-0 overflow-hidden bg-stone-900">
+              <AnimatePresence initial={false}>
+                <motion.img
+                  key={bgIndex}
+                  src={BACKGROUNDS[bgIndex]}
+                  initial={{ x: "100%" }}
+                  animate={{ x: 0 }}
+                  exit={{ x: "-100%" }}
+                  transition={{ duration: 0.8, ease: "easeInOut" }}
+                  className="absolute inset-0 w-full h-full object-cover"
+                  alt="Background"
+                />
+              </AnimatePresence>
+            </div>
+        
+        {/* Tint Overlay */}
+        <div className="absolute inset-0 bg-stone-900/60 dark:bg-stone-900/80 backdrop-blur-[2px] z-10" />
+        
+        {/* Gradient fade to bottom */}
+        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[var(--color-bg-light)] dark:from-[var(--color-bg-dark)] to-transparent z-10" />
+
+        {/* Logo */}
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="relative z-20 mt-8"
+        >
+          <div className="bg-white/95 dark:bg-stone-100 p-2 md:p-3 rounded-full shadow-2xl backdrop-blur-md border-4 border-white/50 flex items-center justify-center w-52 h-52 sm:w-64 sm:h-64 md:w-72 md:h-72 transition-all duration-300 mx-auto">
+            <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center bg-white p-1 sm:p-2 md:p-3">
+              <img 
+                src={logo} 
+                alt="Bones & Bru Logo" 
+                className="w-full h-full object-contain scale-[1.05]" 
+              />
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Decorative Watercolor Background Elements - Fixed & Responsive */}
+      <div className="fixed top-[-10%] left-[-10%] w-[50vw] h-[50vw] max-w-[600px] max-h-[600px] bg-brand-orange/15 dark:bg-brand-orange/5 rounded-full blur-[100px] pointer-events-none" />
+      <div className="fixed top-[20%] right-[-10%] w-[60vw] h-[60vw] max-w-[700px] max-h-[700px] bg-brand-pink/15 dark:bg-brand-pink/5 rounded-full blur-[120px] pointer-events-none" />
+      <div className="fixed bottom-[-10%] left-[10%] w-[50vw] h-[50vw] max-w-[600px] max-h-[600px] bg-brand-olive/15 dark:bg-brand-olive/5 rounded-full blur-[100px] pointer-events-none" />
+
+      {/* Fun Floating Dog Elements */}
+      <motion.div 
+        animate={{ y: [0, -20, 0], rotate: [0, 10, -10, 0] }} 
+        transition={{ repeat: Infinity, duration: 5, ease: "easeInOut" }}
+        className="fixed top-[15%] left-[10%] text-brand-orange/20 dark:text-brand-orange/10 pointer-events-none z-0"
+      >
+        <PawPrint className="w-24 h-24 md:w-32 md:h-32" />
+      </motion.div>
+      <motion.div 
+        animate={{ y: [0, 20, 0], rotate: [0, -15, 15, 0] }} 
+        transition={{ repeat: Infinity, duration: 6, ease: "easeInOut", delay: 1 }}
+        className="fixed bottom-[20%] right-[10%] text-brand-pink/20 dark:text-brand-pink/10 pointer-events-none z-0"
+      >
+        <Bone className="w-20 h-20 md:w-28 md:h-28" />
+      </motion.div>
+
+      {/* Theme Toggle */}
+      <motion.button
+        whileTap={{ scale: 0.9 }}
+        onClick={() => setIsDarkMode(!isDarkMode)}
+        className="absolute top-4 right-4 md:top-8 md:right-8 p-3 md:p-4 rounded-full bg-white/80 dark:bg-stone-900/80 backdrop-blur-md shadow-sm border border-stone-200/50 dark:border-stone-700/50 z-50 text-stone-600 dark:text-stone-400 hover:shadow-md transition-all"
+      >
+        <AnimatePresence mode="wait">
+          {isDarkMode ? (
+            <motion.div key="sun" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }}>
+              <Sun className="w-5 h-5 md:w-6 md:h-6" />
+            </motion.div>
+          ) : (
+            <motion.div key="moon" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }}>
+              <Moon className="w-5 h-5 md:w-6 md:h-6" />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.button>
+
+      <main className="w-full max-w-2xl z-10 px-4 pb-12 md:pb-20 flex flex-col items-center">
+        {/* Highlighted CTA - Main Website & Navigate */}
+        <motion.a
+          href="https://bonesandbru.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          whileHover={{ scale: 1.02, y: -4 }}
+          whileTap={{ scale: 0.98 }}
+          className="block w-full mb-10 md:mb-14 p-6 sm:p-8 md:p-12 rounded-[2.5rem] bg-gradient-to-br from-brand-orange via-brand-pink to-brand-orange bg-[length:200%_200%] animate-gradient text-white shadow-2xl shadow-brand-pink/30 relative overflow-hidden group text-center border border-white/20"
+        >
+          <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-125 group-hover:rotate-12 transition-all duration-700 pointer-events-none">
+            <Coffee className="w-32 h-32 md:w-48 md:h-48" />
+          </div>
+          <div className="absolute bottom-0 left-0 p-6 opacity-10 group-hover:scale-125 group-hover:-rotate-12 transition-all duration-700 pointer-events-none">
+            <PawPrint className="w-24 h-24 md:w-40 md:h-40" />
+          </div>
+          
+          <div className="relative z-10 flex flex-col items-center justify-center">
+            <h3 className="font-serif text-[1.65rem] sm:text-4xl md:text-5xl lg:text-6xl font-black mb-3 md:mb-4 leading-tight drop-shadow-md whitespace-nowrap">
+              Visit with your fur baby
+            </h3>
+            <p className="text-white/95 text-base sm:text-lg md:text-xl font-medium flex items-center justify-center gap-2 mb-8 md:mb-10 drop-shadow-sm">
+              to pick up treats and coffee
+            </p>
+            
+            <div className="inline-flex items-center gap-3 bg-white text-brand-orange px-6 py-3 md:px-8 md:py-4 rounded-full font-bold text-base md:text-xl shadow-xl hover:shadow-2xl transition-all group-hover:scale-105">
+              <div className="w-6 h-6 md:w-8 md:h-8 rounded-full overflow-hidden bg-white flex items-center justify-center shrink-0">
+                <img src={logo} alt="Logo" className="w-full h-full object-cover" />
+              </div>
+              <span>Order</span>
+              <ExternalLink className="w-5 h-5 md:w-6 md:h-6 ml-1" />
+            </div>
+          </div>
+        </motion.a>
+
+        {/* Social Links Grid - Front and Centre */}
+        <div className="grid grid-cols-4 gap-2 sm:gap-4 md:gap-5 mb-12 md:mb-16 w-full">
+          {socialLinks.map((social, index) => (
+            <motion.a
+              key={social.name}
+              href={social.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 + index * 0.1 }}
+              whileHover={{ scale: 1.05, y: -4 }}
+              whileTap={{ scale: 0.95 }}
+              className="flex flex-col items-center justify-center p-3 sm:p-5 md:p-6 bg-white/80 dark:bg-stone-900/80 backdrop-blur-md rounded-2xl md:rounded-[2rem] shadow-sm border border-stone-200/50 dark:border-stone-700/50 hover:shadow-lg transition-all group"
+            >
+              <div className={`w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full ${social.color} text-white flex items-center justify-center mb-2 sm:mb-3 md:mb-4 shadow-md group-hover:scale-110 transition-transform duration-300`}>
+                {social.icon}
+              </div>
+              <span className="text-[9px] sm:text-xs md:text-sm font-bold text-stone-700 dark:text-stone-300 uppercase tracking-widest text-center">
+                {social.name}
+              </span>
+            </motion.a>
+          ))}
+        </div>
+
+        {/* Footer / Thank You */}
+        <motion.footer 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.8 }}
+          className="text-center pb-8 md:pb-12"
+        >
+          <div className="h-px w-16 md:w-20 bg-stone-200 dark:bg-stone-800 mx-auto mb-6 md:mb-8" />
+          <p className="font-serif italic text-stone-500 dark:text-stone-400 text-lg md:text-xl mb-8">
+            "Thank you kindly for your support of small business."
+          </p>
+          
+          {/* Address Bar / Navigate */}
+          <motion.a
+            href="https://maps.app.goo.gl/Ztxx4ZxxPG5SRg33A"
+            target="_blank"
+            rel="noopener noreferrer"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="flex items-center justify-between w-full max-w-md mx-auto mb-10 p-3 md:p-4 bg-white/80 dark:bg-stone-900/80 backdrop-blur-md rounded-2xl shadow-sm border border-stone-200/50 dark:border-stone-700/50 hover:shadow-md transition-all group"
+          >
+            <div className="flex items-center gap-3 md:gap-4 overflow-hidden">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-brand-olive/10 dark:bg-brand-olive/20 flex items-center justify-center text-brand-olive shrink-0">
+                <Map className="w-5 h-5 md:w-6 md:h-6" />
+              </div>
+              <div className="text-left truncate">
+                <p className="text-[10px] md:text-xs uppercase tracking-widest font-bold text-stone-400 leading-none mb-1">
+                  Location
+                </p>
+                <p className="text-stone-800 dark:text-stone-200 font-semibold text-sm md:text-base truncate">
+                  410 W 1st St #104 Tempe, AZ
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 bg-brand-olive text-white px-4 py-2 rounded-xl font-bold text-xs md:text-sm shadow-sm group-hover:bg-brand-olive/90 transition-colors shrink-0 ml-2">
+              <span>Navigate</span>
+              <ExternalLink className="w-3 h-3 md:w-4 md:h-4" />
+            </div>
+          </motion.a>
+
+          {/* Owner Details & Small Contact Links */}
+          <div className="flex flex-col items-center justify-center gap-5">
+            <div className="flex items-center justify-center gap-3 md:gap-4 text-stone-500 dark:text-stone-400 text-xs md:text-sm uppercase tracking-[0.3em] font-bold">
+              <span>John Gagne</span>
+              <span className="w-1.5 md:w-2 h-1.5 md:h-2 bg-brand-orange rounded-full" />
+              <span>Owner</span>
+            </div>
+            
+            <div className="flex items-center gap-5 mt-2">
+              <a 
+                href="tel:7605096910" 
+                className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/50 dark:bg-stone-800/50 hover:bg-white dark:hover:bg-stone-800 border border-stone-200/50 dark:border-stone-700/50 text-stone-500 hover:text-brand-orange transition-all group"
+              >
+                <PhoneCall className="w-5 h-5 group-hover:animate-pulse" />
+                <span className="text-sm font-semibold">Call</span>
+              </a>
+              <a 
+                href="mailto:johngagne@bonesandbru.com" 
+                className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/50 dark:bg-stone-800/50 hover:bg-white dark:hover:bg-stone-800 border border-stone-200/50 dark:border-stone-700/50 text-stone-500 hover:text-brand-pink transition-all group"
+              >
+                <Mailbox className="w-5 h-5 group-hover:animate-bounce" />
+                <span className="text-sm font-semibold">Email</span>
+              </a>
+            </div>
+          </div>
+        </motion.footer>
+      </main>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
