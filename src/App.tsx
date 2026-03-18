@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { 
   Instagram, 
@@ -38,6 +38,7 @@ const BACKGROUNDS = [
 export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [bgIndex, setBgIndex] = useState(0);
+  const prevBgIndexRef = useRef(0);
   const [isLoaded, setIsLoaded] = useState(false);
   const [showVideoModal, setShowVideoModal] = useState(false);
 
@@ -63,7 +64,10 @@ export default function App() {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setBgIndex((prev) => (prev + 1) % BACKGROUNDS.length);
+      setBgIndex((prev) => {
+        prevBgIndexRef.current = prev;
+        return (prev + 1) % BACKGROUNDS.length;
+      });
     }, 8000);
     return () => clearInterval(timer);
   }, []);
@@ -89,28 +93,40 @@ export default function App() {
       <div className="min-h-screen flex flex-col items-center relative overflow-hidden bg-[var(--color-bg-light)] dark:bg-[var(--color-bg-dark)] transition-colors duration-500">
           {/* Hero Header Section with Scrolling Background */}
           <div className="relative w-full h-[50dvh] min-h-[420px] max-h-[600px] flex items-center justify-center overflow-hidden rounded-b-[2.5rem] md:rounded-b-[4rem] shadow-xl">
-            {/* Sliding Background - Statically mounted for zero decode flickering */}
+            {/* Sliding Background - Only active + adjacent slides animate */}
             <div className="absolute inset-0 overflow-hidden bg-stone-900 border-b-0 flex items-center justify-center">
-              {BACKGROUNDS.map((bg, idx) => (
-                <motion.div
-                  key={idx}
-                  initial={false}
-                  animate={{
-                    x: idx === bgIndex ? "0%" : idx < bgIndex ? "-100%" : "100%"
-                  }}
-                  transition={{ duration: 1.2, ease: "easeInOut" }}
-                  className="absolute inset-0 w-full h-full flex items-center justify-center pointer-events-none"
-                  style={{ willChange: "transform" }}
-                >
-                  <img
-                    src={bg.src}
-                    className="absolute inset-0 w-full h-full object-contain"
-                    alt={`Background ${idx + 1}`}
-                    loading="eager"
-                    decoding="sync"
-                  />
-                </motion.div>
-              ))}
+              {BACKGROUNDS.map((bg, idx) => {
+                const isActive = idx === bgIndex;
+                const isOutgoing = idx === prevBgIndexRef.current;
+                const shouldAnimate = isActive || isOutgoing;
+
+                let xPos: string;
+                if (isActive) {
+                  xPos = "0%";
+                } else if (isOutgoing) {
+                  xPos = "-100%";
+                } else {
+                  xPos = "100%";
+                }
+
+                return (
+                  <motion.div
+                    key={idx}
+                    initial={false}
+                    animate={{ x: xPos }}
+                    transition={shouldAnimate ? { duration: 1.2, ease: "easeInOut" } : { duration: 0 }}
+                    className="absolute inset-0 w-full h-full flex items-center justify-center pointer-events-none"
+                  >
+                    <img
+                      src={bg.src}
+                      className="absolute inset-0 w-full h-full object-contain"
+                      alt={`Background ${idx + 1}`}
+                      loading="eager"
+                      decoding="async"
+                    />
+                  </motion.div>
+                );
+              })}
             </div>
         
         {/* Tint Overlay */}
@@ -138,42 +154,42 @@ export default function App() {
         </div>
       </motion.div>
 
-      {/* Decorative Watercolor Background Elements - Fixed & Responsive */}
-      <div className="fixed top-[-10%] left-[-10%] w-[50vw] h-[50vw] max-w-[600px] max-h-[600px] bg-brand-orange/15 dark:bg-brand-orange/5 rounded-full blur-[100px] pointer-events-none" />
-      <div className="fixed top-[20%] right-[-10%] w-[60vw] h-[60vw] max-w-[700px] max-h-[700px] bg-brand-pink/15 dark:bg-brand-pink/5 rounded-full blur-[120px] pointer-events-none" />
-      <div className="fixed bottom-[-10%] left-[10%] w-[50vw] h-[50vw] max-w-[600px] max-h-[600px] bg-brand-olive/15 dark:bg-brand-olive/5 rounded-full blur-[100px] pointer-events-none" />
+      {/* Decorative Watercolor Background Elements - Isolated compositing */}
+      <div className="fixed top-[-10%] left-[-10%] w-[50vw] h-[50vw] max-w-[600px] max-h-[600px] bg-brand-orange/15 dark:bg-brand-orange/5 rounded-full blur-[100px] pointer-events-none" style={{ contain: "strict" }} />
+      <div className="fixed top-[20%] right-[-10%] w-[60vw] h-[60vw] max-w-[700px] max-h-[700px] bg-brand-pink/15 dark:bg-brand-pink/5 rounded-full blur-[120px] pointer-events-none" style={{ contain: "strict" }} />
+      <div className="fixed bottom-[-10%] left-[10%] w-[50vw] h-[50vw] max-w-[600px] max-h-[600px] bg-brand-olive/15 dark:bg-brand-olive/5 rounded-full blur-[100px] pointer-events-none" style={{ contain: "strict" }} />
 
-      {/* Fun Floating Dog Elements */}
-      <motion.div 
-        animate={{ y: [0, -20, 0], rotate: [0, 10, -10, 0] }} 
-        transition={{ repeat: Infinity, duration: 5, ease: "easeInOut" }}
+      {/* Fun Floating Dog Elements - Slower to reduce GPU contention */}
+      <motion.div
+        animate={{ y: [0, -20, 0], rotate: [0, 10, -10, 0] }}
+        transition={{ repeat: Infinity, duration: 8, ease: "easeInOut" }}
         className="fixed top-[10%] left-[5%] md:left-[10%] text-brand-orange/20 dark:text-brand-orange/10 pointer-events-none z-0"
       >
         <PawPrint className="w-16 h-16 md:w-32 md:h-32" />
       </motion.div>
-      <motion.div 
-        animate={{ y: [0, 20, 0], rotate: [0, -15, 15, 0] }} 
-        transition={{ repeat: Infinity, duration: 6, ease: "easeInOut", delay: 1 }}
+      <motion.div
+        animate={{ y: [0, 20, 0], rotate: [0, -15, 15, 0] }}
+        transition={{ repeat: Infinity, duration: 10, ease: "easeInOut", delay: 1 }}
         className="fixed bottom-[15%] right-[5%] md:right-[10%] text-brand-pink/20 dark:text-brand-pink/10 pointer-events-none z-0"
       >
         <Bone className="w-16 h-16 md:w-28 md:h-28" />
       </motion.div>
 
-      {/* Animated Dog Catching Ball */}
+      {/* Animated Dog Catching Ball - Simplified: single bounce, longer traverse */}
       <motion.div
         animate={{ x: ["-20vw", "120vw"] }}
-        transition={{ duration: 6, ease: "linear", repeat: Infinity }}
+        transition={{ duration: 12, ease: "linear", repeat: Infinity }}
         className="fixed bottom-12 left-0 flex items-end gap-3 md:gap-4 z-10 opacity-30 dark:opacity-20 pointer-events-none"
       >
-        <motion.div 
-          animate={{ y: [0, -50, 0], x: [0, 30, 0], rotate: [0, -5, 5, 0] }} 
-          transition={{ duration: 0.7, repeat: Infinity, ease: "easeInOut" }}
+        <motion.div
+          animate={{ y: [0, -30, 0], rotate: [0, -5, 5, 0] }}
+          transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
         >
           <Dog className="w-16 h-16 md:w-24 md:h-24 text-brand-pink fill-current" />
         </motion.div>
-        <motion.div 
-          animate={{ y: [0, -80, 0], x: [0, 40, 0], rotate: 360 }} 
-          transition={{ duration: 0.9, repeat: Infinity, ease: "easeOut" }} 
+        <motion.div
+          animate={{ y: [0, -50, 0], rotate: 360 }}
+          transition={{ duration: 1.5, repeat: Infinity, ease: "easeOut" }}
           className="mb-4"
         >
           <div className="w-5 h-5 md:w-7 md:h-7 rounded-full bg-brand-orange shadow-lg" />
