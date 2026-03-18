@@ -84,29 +84,9 @@ export default function App() {
   ];
 
   return (
-    <AnimatePresence>
-      {!isLoaded ? (
-        <motion.div
-          key="loader"
-          initial={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[100] bg-stone-100 dark:bg-stone-900 flex items-center justify-center"
-        >
-          <motion.div
-            animate={{ scale: [1, 1.1, 1], opacity: [0.5, 1, 0.5] }}
-            transition={{ repeat: Infinity, duration: 1 }}
-            className="w-16 h-16 md:w-24 md:h-24 rounded-full bg-brand-orange/20 flex items-center justify-center p-3"
-          >
-            <img src={logo} alt="Loading..." className="w-full h-full object-contain opacity-50" />
-          </motion.div>
-        </motion.div>
-      ) : (
-        <motion.div 
-          key="content"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="min-h-screen flex flex-col items-center relative overflow-hidden bg-[var(--color-bg-light)] dark:bg-[var(--color-bg-dark)] transition-colors duration-500"
-        >
+    <>
+      {/* Main Content (Always rendered to prevent DOM switching flickers on Android) */}
+      <div className="min-h-screen flex flex-col items-center relative overflow-hidden bg-[var(--color-bg-light)] dark:bg-[var(--color-bg-dark)] transition-colors duration-500">
           {/* Hero Header Section with Scrolling Background */}
           <div className="relative w-full h-[50dvh] min-h-[420px] max-h-[600px] flex items-center justify-center overflow-hidden mb-6 md:mb-10 rounded-b-[2.5rem] md:rounded-b-[4rem] shadow-xl">
             {/* Sliding Background */}
@@ -119,6 +99,7 @@ export default function App() {
                   exit={{ x: "-100%", opacity: 0 }}
                   transition={{ duration: 1.2, ease: "easeInOut" }}
                   className="absolute inset-0 w-full h-full flex items-center justify-center"
+                  style={{ willChange: "transform, opacity" }}
                 >
                   {BACKGROUNDS[bgIndex].type === 'video' ? (
                     <video
@@ -401,8 +382,27 @@ export default function App() {
           </motion.div>
         )}
       </AnimatePresence>
-        </motion.div>
-      )}
-    </AnimatePresence>
+        </div>
+
+      {/* Fullscreen Loader Overlay (Fades out when load completes) */}
+      <AnimatePresence>
+        {!isLoaded && (
+          <motion.div
+            key="loader"
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[9999] bg-stone-100 dark:bg-stone-900 flex items-center justify-center pointer-events-none"
+          >
+            <motion.div
+              animate={{ scale: [1, 1.1, 1], opacity: [0.5, 1, 0.5] }}
+              transition={{ repeat: Infinity, duration: 1 }}
+              className="w-16 h-16 md:w-24 md:h-24 rounded-full bg-brand-orange/20 flex items-center justify-center p-3"
+            >
+              <img src={logo} alt="Loading..." className="w-full h-full object-contain opacity-50" />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
