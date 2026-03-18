@@ -404,36 +404,21 @@ export default function App() {
       </AnimatePresence>
         </div>
 
-      {/* Premium Branded Splash Screen Overlay */}
+      {/* Fullscreen Loader Overlay (Fades out when load completes) */}
       <AnimatePresence>
         {!isLoaded && (
           <motion.div
             key="loader"
             initial={{ opacity: 1 }}
-            exit={{ opacity: 0, scale: 1.05 }}
-            transition={{ duration: 1.2, ease: [0.25, 1, 0.5, 1] }}
-            className="fixed inset-0 z-[9999] bg-stone-50 dark:bg-stone-950 flex flex-col items-center justify-center pointer-events-none"
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[9999] bg-stone-100 dark:bg-stone-900 flex items-center justify-center pointer-events-none"
           >
             <motion.div
-              animate={{ scale: [1, 1.05, 1], opacity: [0.7, 1, 0.7] }}
-              transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-              className="w-24 h-24 md:w-32 md:h-32 rounded-full shadow-[0_0_40px_rgba(245,158,11,0.2)] bg-white dark:bg-stone-900 border-[4px] border-brand-orange/30 overflow-hidden flex items-center justify-center p-3"
+              animate={{ scale: [1, 1.1, 1], opacity: [0.5, 1, 0.5] }}
+              transition={{ repeat: Infinity, duration: 1 }}
+              className="w-16 h-16 md:w-24 md:h-24 rounded-full bg-brand-orange/20 flex items-center justify-center p-3"
             >
-              <img src={logo} alt="Loading..." className="w-full h-full object-contain" />
-            </motion.div>
-            
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.8 }}
-              className="mt-8 flex flex-col items-center"
-            >
-              <h2 className="text-stone-800 dark:text-stone-200 font-serif text-3xl md:text-4xl tracking-[0.2em] uppercase font-bold">
-                Bones <span className="text-brand-orange">&</span> Bru
-              </h2>
-              <p className="text-stone-500 dark:text-stone-400 mt-3 text-sm tracking-widest uppercase">
-                Preparing Experience
-              </p>
+              <img src={logo} alt="Loading..." className="w-full h-full object-contain opacity-50" />
             </motion.div>
           </motion.div>
         )}
