@@ -20,7 +20,10 @@ import {
   Dog,
   Map,
   PhoneCall,
-  Mailbox
+  Mailbox,
+  Play,
+  UserPlus,
+  X
 } from "lucide-react";
 
 import logo from "./assets/logo.webp";
@@ -29,14 +32,14 @@ const BACKGROUNDS = [
   { type: 'image', src: '/bg1.jpg' },
   { type: 'image', src: '/bg2.jpg' },
   { type: 'image', src: '/bru.jpg' },
-  { type: 'image', src: '/shop.jpg' },
-  { type: 'video', src: '/video.mp4' },
+  { type: 'image', src: '/shop.jpg' }
 ];
 
 export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [bgIndex, setBgIndex] = useState(0);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [showVideoModal, setShowVideoModal] = useState(false);
 
   useEffect(() => {
     // Preload images to prevent glitching
@@ -228,15 +231,10 @@ export default function App() {
 
       <main className="w-full max-w-2xl lg:max-w-3xl z-10 px-6 sm:px-8 pb-16 md:pb-24 flex flex-col items-center">
         {/* Highlighted CTA - Main Website & Navigate */}
-        <motion.a
-          href="https://bonesandbru.com/"
-          target="_blank"
-          rel="noopener noreferrer"
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          whileHover={{ scale: 1.02, y: -4 }}
-          whileTap={{ scale: 0.98 }}
           className="block w-full mb-10 md:mb-14 p-8 sm:p-10 md:p-14 rounded-[3rem] bg-gradient-to-br from-brand-orange via-brand-pink to-brand-orange bg-[length:200%_200%] animate-gradient text-white shadow-[0_20px_50px_-12px_rgba(236,72,153,0.4)] relative overflow-hidden group text-center border border-white/20 transition-all"
         >
           <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-125 group-hover:rotate-12 transition-all duration-700 pointer-events-none">
@@ -254,15 +252,25 @@ export default function App() {
               to pick up treats and coffee
             </p>
             
-            <div className="inline-flex items-center gap-3 bg-white text-brand-orange px-6 py-3 md:px-8 md:py-4 rounded-full font-bold text-base md:text-xl shadow-xl hover:shadow-2xl transition-all group-hover:scale-105">
-              <div className="w-6 h-6 md:w-8 md:h-8 rounded-full overflow-hidden bg-white flex items-center justify-center shrink-0">
-                <img src={logo} alt="Logo" className="w-full h-full object-cover" />
-              </div>
-              <span>Order</span>
-              <ExternalLink className="w-5 h-5 md:w-6 md:h-6 ml-1" />
+            <div className="flex flex-wrap items-center justify-center gap-4 w-full">
+              <a href="https://bonesandbru.com/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-3 bg-white text-brand-orange px-6 py-3 md:px-8 md:py-4 rounded-full font-bold text-base md:text-xl shadow-xl hover:shadow-2xl transition-all hover:-translate-y-1">
+                <div className="w-6 h-6 md:w-8 md:h-8 rounded-full overflow-hidden bg-white flex items-center justify-center shrink-0">
+                  <img src={logo} alt="Logo" className="w-full h-full object-cover" />
+                </div>
+                <span>Order</span>
+                <ExternalLink className="w-5 h-5 md:w-6 md:h-6 ml-1" />
+              </a>
+              
+              <button 
+                onClick={() => setShowVideoModal(true)} 
+                className="inline-flex items-center justify-center gap-3 bg-brand-pink text-white px-6 py-3 md:px-8 md:py-4 rounded-full font-bold text-base md:text-xl shadow-xl hover:shadow-2xl transition-all hover:-translate-y-1 border-2 border-white/20"
+              >
+                <span>Walkthrough</span>
+                <Play className="w-5 h-5 md:w-6 md:h-6 ml-1 fill-current" />
+              </button>
             </div>
           </div>
-        </motion.a>
+        </motion.div>
 
         {/* Social Links Grid - Front and Centre */}
         <div className="grid grid-cols-4 gap-2 sm:gap-4 md:gap-5 mb-12 md:mb-16 w-full">
@@ -337,25 +345,65 @@ export default function App() {
               <span>Owner</span>
             </div>
             
-            <div className="flex items-center gap-6 md:gap-8 mt-2 w-full justify-center">
+            <div className="flex flex-wrap items-center gap-4 md:gap-6 mt-2 w-full justify-center">
               <a 
                 href="tel:7605096910" 
                 className="flex items-center gap-3 px-8 py-4 md:px-10 md:py-5 rounded-full bg-white/70 dark:bg-stone-800/70 hover:bg-white dark:hover:bg-stone-800 border-2 border-stone-200/80 dark:border-stone-700/80 text-stone-600 hover:text-brand-orange hover:border-brand-orange/50 transition-all group shadow-sm hover:shadow-md"
               >
                 <PhoneCall className="w-6 h-6 md:w-7 md:h-7 group-hover:animate-pulse" />
-                <span className="text-lg md:text-xl font-bold">Call</span>
+                <span className="text-base md:text-xl font-bold">Call</span>
               </a>
               <a 
                 href="mailto:johngagne@bonesandbru.com" 
                 className="flex items-center gap-3 px-8 py-4 md:px-10 md:py-5 rounded-full bg-white/70 dark:bg-stone-800/70 hover:bg-white dark:hover:bg-stone-800 border-2 border-stone-200/80 dark:border-stone-700/80 text-stone-600 hover:text-brand-pink hover:border-brand-pink/50 transition-all group shadow-sm hover:shadow-md"
               >
                 <Mailbox className="w-6 h-6 md:w-7 md:h-7 group-hover:animate-bounce" />
-                <span className="text-lg md:text-xl font-bold">Email</span>
+                <span className="text-base md:text-xl font-bold">Email</span>
+              </a>
+              <a 
+                href={`data:text/vcard;charset=utf-8,${encodeURIComponent(`BEGIN:VCARD\nVERSION:3.0\nFN:John Gagne\nORG:Bones & Bru\nTEL:7605096910\nEMAIL:johngagne@bonesandbru.com\nEND:VCARD`)}`}
+                download="John_Gagne.vcf"
+                className="flex items-center gap-3 px-8 py-4 md:px-10 md:py-5 rounded-full bg-brand-orange/10 dark:bg-brand-orange/20 hover:bg-brand-orange text-brand-orange hover:text-white border-2 border-brand-orange/50 hover:border-brand-orange transition-all group shadow-sm hover:shadow-md"
+              >
+                <UserPlus className="w-6 h-6 md:w-7 md:h-7" />
+                <span className="text-base md:text-xl font-bold">Save Contact</span>
               </a>
             </div>
           </div>
         </motion.footer>
       </main>
+
+      {/* Video Modal Overlay */}
+      <AnimatePresence>
+        {showVideoModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] bg-black/90 flex items-center justify-center p-4 backdrop-blur-sm"
+          >
+            <button
+              onClick={() => setShowVideoModal(false)}
+              className="absolute top-6 right-6 p-2 bg-white/10 hover:bg-brand-pink rounded-full text-white transition-colors z-10"
+            >
+              <X className="w-8 h-8" />
+            </button>
+            <motion.div
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.95 }}
+              className="relative w-full max-w-4xl aspect-[9/16] sm:aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl border border-white/10"
+            >
+              <video
+                src="/video.mp4"
+                controls
+                autoPlay
+                className="w-full h-full object-contain"
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
         </motion.div>
       )}
     </AnimatePresence>
