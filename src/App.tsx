@@ -36,7 +36,12 @@ const BACKGROUNDS = [
 ];
 
 export default function App() {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    if (typeof document !== 'undefined') {
+      return document.documentElement.classList.contains('dark');
+    }
+    return false;
+  });
   const [bgIndex, setBgIndex] = useState(0);
   const prevBgIndexRef = useRef(0);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -75,8 +80,10 @@ export default function App() {
   useEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
     } else {
       document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
     }
   }, [isDarkMode]);
 
