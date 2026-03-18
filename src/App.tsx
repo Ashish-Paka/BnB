@@ -29,10 +29,10 @@ import {
 import logo from "./assets/logo.webp";
 
 const BACKGROUNDS = [
-  { type: 'image', src: '/bg1.jpg' },
-  { type: 'image', src: '/bg2.jpg' },
-  { type: 'image', src: '/bru.jpg' },
-  { type: 'image', src: '/shop.jpg' }
+  { type: 'image', src: '/bg1.webp' },
+  { type: 'image', src: '/bg2.webp' },
+  { type: 'image', src: '/bru.webp' },
+  { type: 'image', src: '/shop.webp' }
 ];
 
 export default function App() {
@@ -122,7 +122,8 @@ export default function App() {
                     initial={false}
                     animate={{ x: xPos }}
                     transition={shouldAnimate ? { duration: 1.2, ease: "easeInOut" } : { duration: 0 }}
-                    className="absolute inset-0 w-full h-full flex items-center justify-center pointer-events-none"
+                    className="absolute inset-0 w-full h-full flex items-center justify-center pointer-events-none [backface-visibility:hidden] [transform:translateZ(0)]"
+                    style={{ willChange: "transform", WebkitBackfaceVisibility: "hidden", WebkitTransform: "translateZ(0)" }}
                   >
                     <img
                       src={bg.src}
