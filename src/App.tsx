@@ -89,36 +89,28 @@ export default function App() {
       <div className="min-h-screen flex flex-col items-center relative overflow-hidden bg-[var(--color-bg-light)] dark:bg-[var(--color-bg-dark)] transition-colors duration-500">
           {/* Hero Header Section with Scrolling Background */}
           <div className="relative w-full h-[50dvh] min-h-[420px] max-h-[600px] flex items-center justify-center overflow-hidden rounded-b-[2.5rem] md:rounded-b-[4rem] shadow-xl">
-            {/* Sliding Background */}
+            {/* Sliding Background - Statically mounted for zero decode flickering */}
             <div className="absolute inset-0 overflow-hidden bg-stone-900 border-b-0 flex items-center justify-center">
-              <AnimatePresence initial={false}>
+              {BACKGROUNDS.map((bg, idx) => (
                 <motion.div
-                  key={bgIndex}
-                  initial={{ x: "100%", opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  exit={{ x: "-100%", opacity: 0 }}
+                  key={idx}
+                  initial={false}
+                  animate={{
+                    x: idx === bgIndex ? "0%" : idx < bgIndex ? "-100%" : "100%",
+                    opacity: idx === bgIndex ? 1 : 0,
+                  }}
                   transition={{ duration: 1.2, ease: "easeInOut" }}
-                  className="absolute inset-0 w-full h-full flex items-center justify-center"
+                  className="absolute inset-0 w-full h-full flex items-center justify-center pointer-events-none"
                   style={{ willChange: "transform, opacity" }}
                 >
-                  {BACKGROUNDS[bgIndex].type === 'video' ? (
-                    <video
-                      src={BACKGROUNDS[bgIndex].src}
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                      className="absolute inset-0 w-full h-full object-contain"
-                    />
-                  ) : (
-                    <img
-                      src={BACKGROUNDS[bgIndex].src}
-                      className="absolute inset-0 w-full h-full object-contain"
-                      alt="Background"
-                    />
-                  )}
+                  <img
+                    src={bg.src}
+                    className="absolute inset-0 w-full h-full object-contain"
+                    alt={`Background ${idx + 1}`}
+                    loading={idx === 0 ? "eager" : "lazy"}
+                  />
                 </motion.div>
-              </AnimatePresence>
+              ))}
             </div>
         
         {/* Tint Overlay */}
