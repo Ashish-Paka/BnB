@@ -23,9 +23,9 @@ import {
   Mailbox
 } from "lucide-react";
 
-import logo from "./assets/logo.png";
-import bg1 from "./assets/bg1.jpg";
-import bg2 from "./assets/bg2.jpg";
+import logo from "./assets/logo.webp";
+import bg1 from "./assets/bg1.webp";
+import bg2 from "./assets/bg2.webp";
 
 const BACKGROUNDS = [bg1, bg2];
 
@@ -60,7 +60,7 @@ export default function App() {
   useEffect(() => {
     const timer = setInterval(() => {
       setBgIndex((prev) => (prev + 1) % BACKGROUNDS.length);
-    }, 5000);
+    }, 4000);
     return () => clearInterval(timer);
   }, []);
 
@@ -90,8 +90,8 @@ export default function App() {
         >
           <motion.div
             animate={{ scale: [1, 1.1, 1], opacity: [0.5, 1, 0.5] }}
-            transition={{ repeat: Infinity, duration: 1.5 }}
-            className="w-24 h-24 rounded-full bg-brand-orange/20 flex items-center justify-center p-4"
+            transition={{ repeat: Infinity, duration: 1 }}
+            className="w-16 h-16 md:w-24 md:h-24 rounded-full bg-brand-orange/20 flex items-center justify-center p-3"
           >
             <img src={logo} alt="Loading..." className="w-full h-full object-contain opacity-50" />
           </motion.div>
@@ -104,18 +104,18 @@ export default function App() {
           className="min-h-screen flex flex-col items-center relative overflow-hidden bg-[var(--color-bg-light)] dark:bg-[var(--color-bg-dark)] transition-colors duration-500"
         >
           {/* Hero Header Section with Scrolling Background */}
-          <div className="relative w-full h-[45vh] min-h-[380px] flex items-center justify-center overflow-hidden mb-8 md:mb-12">
+          <div className="relative w-full h-[50vh] min-h-[420px] max-h-[600px] flex items-center justify-center overflow-hidden mb-6 md:mb-10 rounded-b-[2.5rem] md:rounded-b-[4rem] shadow-xl">
             {/* Sliding Background */}
-            <div className="absolute inset-0 overflow-hidden bg-stone-900">
-              <AnimatePresence initial={false}>
+            <div className="absolute inset-0 overflow-hidden bg-stone-900 border-b-0">
+              <AnimatePresence initial={false} mode="popLayout">
                 <motion.img
                   key={bgIndex}
                   src={BACKGROUNDS[bgIndex]}
-                  initial={{ x: "100%" }}
-                  animate={{ x: 0 }}
-                  exit={{ x: "-100%" }}
-                  transition={{ duration: 0.8, ease: "easeInOut" }}
-                  className="absolute inset-0 w-full h-full object-cover"
+                  initial={{ x: "100%", opacity: 0.8 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  exit={{ x: "-100%", opacity: 0.8 }}
+                  transition={{ duration: 1.2, ease: "easeInOut" }}
+                  className="absolute inset-0 w-full h-full object-cover origin-center"
                   alt="Background"
                 />
               </AnimatePresence>
@@ -155,16 +155,37 @@ export default function App() {
       <motion.div 
         animate={{ y: [0, -20, 0], rotate: [0, 10, -10, 0] }} 
         transition={{ repeat: Infinity, duration: 5, ease: "easeInOut" }}
-        className="fixed top-[15%] left-[10%] text-brand-orange/20 dark:text-brand-orange/10 pointer-events-none z-0"
+        className="fixed top-[10%] left-[5%] md:left-[10%] text-brand-orange/20 dark:text-brand-orange/10 pointer-events-none z-0"
       >
-        <PawPrint className="w-24 h-24 md:w-32 md:h-32" />
+        <PawPrint className="w-16 h-16 md:w-32 md:h-32" />
       </motion.div>
       <motion.div 
         animate={{ y: [0, 20, 0], rotate: [0, -15, 15, 0] }} 
         transition={{ repeat: Infinity, duration: 6, ease: "easeInOut", delay: 1 }}
-        className="fixed bottom-[20%] right-[10%] text-brand-pink/20 dark:text-brand-pink/10 pointer-events-none z-0"
+        className="fixed bottom-[15%] right-[5%] md:right-[10%] text-brand-pink/20 dark:text-brand-pink/10 pointer-events-none z-0"
       >
-        <Bone className="w-20 h-20 md:w-28 md:h-28" />
+        <Bone className="w-16 h-16 md:w-28 md:h-28" />
+      </motion.div>
+
+      {/* Animated Dog Catching Ball */}
+      <motion.div
+        animate={{ x: ["-20vw", "120vw"] }}
+        transition={{ duration: 6, ease: "linear", repeat: Infinity }}
+        className="fixed bottom-12 left-0 flex items-end gap-3 md:gap-4 z-10 opacity-30 dark:opacity-20 pointer-events-none"
+      >
+        <motion.div 
+          animate={{ y: [0, -50, 0], x: [0, 30, 0], rotate: [0, -5, 5, 0] }} 
+          transition={{ duration: 0.7, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <Dog className="w-16 h-16 md:w-24 md:h-24 text-brand-pink fill-current" />
+        </motion.div>
+        <motion.div 
+          animate={{ y: [0, -80, 0], x: [0, 40, 0], rotate: 360 }} 
+          transition={{ duration: 0.9, repeat: Infinity, ease: "easeOut" }} 
+          className="mb-4"
+        >
+          <div className="w-5 h-5 md:w-7 md:h-7 rounded-full bg-brand-orange shadow-lg" />
+        </motion.div>
       </motion.div>
 
       {/* Theme Toggle */}
@@ -186,7 +207,7 @@ export default function App() {
         </AnimatePresence>
       </motion.button>
 
-      <main className="w-full max-w-2xl z-10 px-4 pb-12 md:pb-20 flex flex-col items-center">
+      <main className="w-full max-w-2xl lg:max-w-3xl z-10 px-6 sm:px-8 pb-16 md:pb-24 flex flex-col items-center">
         {/* Highlighted CTA - Main Website & Navigate */}
         <motion.a
           href="https://bonesandbru.com/"
@@ -197,7 +218,7 @@ export default function App() {
           transition={{ delay: 0.1 }}
           whileHover={{ scale: 1.02, y: -4 }}
           whileTap={{ scale: 0.98 }}
-          className="block w-full mb-10 md:mb-14 p-6 sm:p-8 md:p-12 rounded-[2.5rem] bg-gradient-to-br from-brand-orange via-brand-pink to-brand-orange bg-[length:200%_200%] animate-gradient text-white shadow-2xl shadow-brand-pink/30 relative overflow-hidden group text-center border border-white/20"
+          className="block w-full mb-10 md:mb-14 p-8 sm:p-10 md:p-14 rounded-[3rem] bg-gradient-to-br from-brand-orange via-brand-pink to-brand-orange bg-[length:200%_200%] animate-gradient text-white shadow-[0_20px_50px_-12px_rgba(236,72,153,0.4)] relative overflow-hidden group text-center border border-white/20 transition-all"
         >
           <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-125 group-hover:rotate-12 transition-all duration-700 pointer-events-none">
             <Coffee className="w-32 h-32 md:w-48 md:h-48" />
