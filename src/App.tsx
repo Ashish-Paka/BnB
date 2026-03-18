@@ -96,18 +96,18 @@ export default function App() {
                   key={idx}
                   initial={false}
                   animate={{
-                    x: idx === bgIndex ? "0%" : idx < bgIndex ? "-100%" : "100%",
-                    opacity: idx === bgIndex ? 1 : 0,
+                    x: idx === bgIndex ? "0%" : idx < bgIndex ? "-100%" : "100%"
                   }}
                   transition={{ duration: 1.2, ease: "easeInOut" }}
                   className="absolute inset-0 w-full h-full flex items-center justify-center pointer-events-none"
-                  style={{ willChange: "transform, opacity" }}
+                  style={{ willChange: "transform" }}
                 >
                   <img
                     src={bg.src}
                     className="absolute inset-0 w-full h-full object-contain"
                     alt={`Background ${idx + 1}`}
-                    loading={idx === 0 ? "eager" : "lazy"}
+                    loading="eager"
+                    decoding="sync"
                   />
                 </motion.div>
               ))}
