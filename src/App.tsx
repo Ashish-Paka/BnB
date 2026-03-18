@@ -315,29 +315,41 @@ export default function App() {
               <span>Owner</span>
             </div>
             
-            <div className="flex flex-wrap items-center gap-4 md:gap-6 mt-2 w-full justify-center">
-              <a 
-                href="tel:7605096910" 
-                className="flex items-center gap-3 px-8 py-4 md:px-10 md:py-5 rounded-full bg-white/70 dark:bg-stone-800/70 hover:bg-white dark:hover:bg-stone-800 border-2 border-stone-200/80 dark:border-stone-700/80 text-stone-600 hover:text-brand-orange hover:border-brand-orange/50 transition-all group shadow-sm hover:shadow-md"
-              >
-                <PhoneCall className="w-6 h-6 md:w-7 md:h-7 group-hover:animate-pulse" />
-                <span className="text-base md:text-xl font-bold">Call</span>
-              </a>
-              <a 
-                href="mailto:johngagne@bonesandbru.com" 
-                className="flex items-center gap-3 px-8 py-4 md:px-10 md:py-5 rounded-full bg-white/70 dark:bg-stone-800/70 hover:bg-white dark:hover:bg-stone-800 border-2 border-stone-200/80 dark:border-stone-700/80 text-stone-600 hover:text-brand-pink hover:border-brand-pink/50 transition-all group shadow-sm hover:shadow-md"
-              >
-                <Mailbox className="w-6 h-6 md:w-7 md:h-7 group-hover:animate-bounce" />
-                <span className="text-base md:text-xl font-bold">Email</span>
-              </a>
-              <a 
-                href={`data:text/vcard;charset=utf-8,${encodeURIComponent(`BEGIN:VCARD\nVERSION:3.0\nFN:John Gagne\nORG:Bones & Bru\nTEL:7605096910\nEMAIL:johngagne@bonesandbru.com\nEND:VCARD`)}`}
-                download="John_Gagne.vcf"
-                className="flex items-center gap-3 px-8 py-4 md:px-10 md:py-5 rounded-full bg-brand-orange/10 dark:bg-brand-orange/20 hover:bg-brand-orange text-brand-orange hover:text-white border-2 border-brand-orange/50 hover:border-brand-orange transition-all group shadow-sm hover:shadow-md"
-              >
-                <UserPlus className="w-6 h-6 md:w-7 md:h-7" />
-                <span className="text-base md:text-xl font-bold">Save Contact</span>
-              </a>
+            <div className="flex flex-col items-center gap-4 w-full mt-2">
+              <div className="flex flex-wrap items-center gap-4 md:gap-6 w-full justify-center">
+                <a 
+                  href="tel:7605096910" 
+                  className="flex items-center gap-3 px-8 py-4 md:px-10 md:py-5 rounded-full bg-white/70 dark:bg-stone-800/70 hover:bg-white dark:hover:bg-stone-800 border-2 border-stone-200/80 dark:border-stone-700/80 text-stone-600 hover:text-brand-orange hover:border-brand-orange/50 transition-all group shadow-sm hover:shadow-md"
+                >
+                  <PhoneCall className="w-6 h-6 md:w-7 md:h-7 group-hover:animate-pulse" />
+                  <span className="text-base md:text-xl font-bold">Call</span>
+                </a>
+                <a 
+                  href="mailto:johngagne@bonesandbru.com" 
+                  className="flex items-center gap-3 px-8 py-4 md:px-10 md:py-5 rounded-full bg-white/70 dark:bg-stone-800/70 hover:bg-white dark:hover:bg-stone-800 border-2 border-stone-200/80 dark:border-stone-700/80 text-stone-600 hover:text-brand-pink hover:border-brand-pink/50 transition-all group shadow-sm hover:shadow-md"
+                >
+                  <Mailbox className="w-6 h-6 md:w-7 md:h-7 group-hover:animate-bounce" />
+                  <span className="text-base md:text-xl font-bold">Email</span>
+                </a>
+              </div>
+              <div className="flex flex-wrap items-center gap-4 md:gap-6 w-full justify-center">
+                <a 
+                  href={`data:text/vcard;charset=utf-8,${encodeURIComponent(`BEGIN:VCARD\nVERSION:3.0\nFN:John Gagne\nORG:Bones & Bru\nTEL:7605096910\nEMAIL:johngagne@bonesandbru.com\nEND:VCARD`)}`}
+                  download="John_Gagne.vcf"
+                  className="flex items-center gap-3 px-6 py-3 md:px-8 md:py-4 rounded-full bg-brand-orange/10 dark:bg-brand-orange/20 hover:bg-brand-orange text-brand-orange hover:text-white border-2 border-brand-orange/50 hover:border-brand-orange transition-all group shadow-sm hover:shadow-md"
+                >
+                  <UserPlus className="w-5 h-5 md:w-6 md:h-6" />
+                  <span className="text-sm md:text-lg font-bold whitespace-nowrap">Save John</span>
+                </a>
+                <a 
+                  href={`data:text/vcard;charset=utf-8,${encodeURIComponent(`BEGIN:VCARD\nVERSION:3.0\nFN:Bones & Bru\nORG:Bones & Bru\nTEL:7605096910\nEMAIL:johngagne@bonesandbru.com\nURL:https://bonesandbru.com\nADR:;;410 W 1st St #104;Tempe;AZ;85281;USA\nEND:VCARD`)}`}
+                  download="Bones_and_Bru.vcf"
+                  className="flex items-center gap-3 px-6 py-3 md:px-8 md:py-4 rounded-full bg-brand-pink/10 dark:bg-brand-pink/20 hover:bg-brand-pink text-brand-pink hover:text-white border-2 border-brand-pink/50 hover:border-brand-pink transition-all group shadow-sm hover:shadow-md"
+                >
+                  <UserPlus className="w-5 h-5 md:w-6 md:h-6" />
+                  <span className="text-sm md:text-lg font-bold whitespace-nowrap">Save Shop</span>
+                </a>
+              </div>
             </div>
           </div>
         </motion.footer>
