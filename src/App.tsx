@@ -88,7 +88,7 @@ export default function App() {
       {/* Main Content (Always rendered to prevent DOM switching flickers on Android) */}
       <div className="min-h-screen flex flex-col items-center relative overflow-hidden bg-[var(--color-bg-light)] dark:bg-[var(--color-bg-dark)] transition-colors duration-500">
           {/* Hero Header Section with Scrolling Background */}
-          <div className="relative w-full h-[50dvh] min-h-[420px] max-h-[600px] flex items-center justify-center overflow-hidden mb-6 md:mb-10 rounded-b-[2.5rem] md:rounded-b-[4rem] shadow-xl">
+          <div className="relative w-full h-[50dvh] min-h-[420px] max-h-[600px] flex items-center justify-center overflow-hidden rounded-b-[2.5rem] md:rounded-b-[4rem] shadow-xl">
             {/* Sliding Background */}
             <div className="absolute inset-0 overflow-hidden bg-stone-900 border-b-0 flex items-center justify-center">
               <AnimatePresence initial={false}>
@@ -125,26 +125,26 @@ export default function App() {
         <div className="absolute inset-0 bg-stone-900/60 dark:bg-stone-900/80 z-10 pointer-events-none" />
         
         {/* Gradient fade to bottom */}
-        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[var(--color-bg-light)] dark:from-[var(--color-bg-dark)] to-transparent z-10" />
-
-        {/* Logo */}
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.9, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-          className="relative z-20 mt-8"
-        >
-          <div className="bg-white/95 dark:bg-stone-100 p-2 md:p-3 rounded-full shadow-2xl backdrop-blur-md border-4 border-white/50 flex items-center justify-center w-52 h-52 sm:w-64 sm:h-64 md:w-72 md:h-72 transition-all duration-300 mx-auto">
-            <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center bg-white p-1 sm:p-2 md:p-3">
-              <img 
-                src={logo} 
-                alt="Bones & Bru Logo" 
-                className="w-full h-full object-contain scale-[1.05]" 
-              />
-            </div>
-          </div>
-        </motion.div>
+        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[var(--color-bg-light)] dark:from-[var(--color-bg-dark)] to-transparent z-10 pointer-events-none" />
       </div>
+
+      {/* Logo Positioned Between Carousel and CTA */}
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
+        className="relative z-30 -mt-20 sm:-mt-24 md:-mt-32 mb-8 sm:mb-12"
+      >
+        <div className="bg-white dark:bg-stone-100 p-2 md:p-3 rounded-full shadow-2xl backdrop-blur-md border-[6px] border-white/50 dark:border-stone-800/50 flex items-center justify-center w-40 h-40 sm:w-48 sm:h-48 md:w-60 md:h-60 transition-all duration-300 mx-auto group hover:scale-105">
+          <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center bg-white p-1 sm:p-2 md:p-3 shadow-inner">
+            <img 
+              src={logo} 
+              alt="Bones & Bru Logo" 
+              className="w-full h-full object-contain scale-[1.05]" 
+            />
+          </div>
+        </div>
+      </motion.div>
 
       {/* Decorative Watercolor Background Elements - Fixed & Responsive */}
       <div className="fixed top-[-10%] left-[-10%] w-[50vw] h-[50vw] max-w-[600px] max-h-[600px] bg-brand-orange/15 dark:bg-brand-orange/5 rounded-full blur-[100px] pointer-events-none" />
