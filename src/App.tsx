@@ -46,20 +46,17 @@ export default function App() {
     const preloadImages = async () => {
       const images = [logo, ...BACKGROUNDS.filter(b => b.type === 'image').map(b => b.src)];
       const promises = images.map((src) => {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
           const img = new Image();
           img.src = src;
           img.onload = resolve;
-          img.onerror = reject;
+          img.onerror = resolve;
         });
       });
-      try {
-        await Promise.all(promises);
-        setIsLoaded(true);
-      } catch (err) {
-        console.error("Failed to preload images", err);
-        setIsLoaded(true); // Still show the app even if some images fail
-      }
+      // Add a small artificial delay so the loader doesn't violently flicker on fast connections
+      promises.push(new Promise(resolve => setTimeout(resolve, 800)));
+      await Promise.all(promises);
+      setIsLoaded(true);
     };
     preloadImages();
   }, []);
@@ -111,16 +108,16 @@ export default function App() {
           className="min-h-screen flex flex-col items-center relative overflow-hidden bg-[var(--color-bg-light)] dark:bg-[var(--color-bg-dark)] transition-colors duration-500"
         >
           {/* Hero Header Section with Scrolling Background */}
-          <div className="relative w-full h-[50vh] min-h-[420px] max-h-[600px] flex items-center justify-center overflow-hidden mb-6 md:mb-10 rounded-b-[2.5rem] md:rounded-b-[4rem] shadow-xl">
+          <div className="relative w-full h-[50dvh] min-h-[420px] max-h-[600px] flex items-center justify-center overflow-hidden mb-6 md:mb-10 rounded-b-[2.5rem] md:rounded-b-[4rem] shadow-xl">
             {/* Sliding Background */}
             <div className="absolute inset-0 overflow-hidden bg-stone-900 border-b-0 flex items-center justify-center">
-              <AnimatePresence initial={false} mode="wait">
+              <AnimatePresence initial={false}>
                 <motion.div
                   key={bgIndex}
-                  initial={{ opacity: 0, scale: 1.05 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 1.5, ease: "easeInOut" }}
+                  initial={{ x: "100%", opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  exit={{ x: "-100%", opacity: 0 }}
+                  transition={{ duration: 1.2, ease: "easeInOut" }}
                   className="absolute inset-0 w-full h-full flex items-center justify-center"
                 >
                   {BACKGROUNDS[bgIndex].type === 'video' ? (
