@@ -1,17 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "motion/react";
 import { Lock, Eye, EyeOff } from "lucide-react";
-import { ownerLogin } from "../lib/api";
+import { ownerLogin, googleLogin } from "../lib/api";
 
 interface Props {
   onLogin: (token: string) => void;
 }
+
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 
 export default function DashboardLoginPage({ onLogin }: Props) {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const googleBtnRef = useRef<HTMLDivElement>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,6 +30,57 @@ export default function DashboardLoginPage({ onLogin }: Props) {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!GOOGLE_CLIENT_ID || !googleBtnRef.current) return;
+
+    const tryInit = () => {
+      if (!window.google?.accounts?.id || !googleBtnRef.current) return;
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: async (response) => {
+          setError("");
+          setLoading(true);
+          try {
+            const res = await googleLogin(response.credential);
+            localStorage.setItem("owner_token", res.token);
+            onLogin(res.token);
+          } catch (err: any) {
+            const msg = err?.message || "Google login failed";
+            try {
+              const parsed = JSON.parse(msg);
+              setError(parsed.error || msg);
+            } catch {
+              setError(msg);
+            }
+          } finally {
+            setLoading(false);
+          }
+        },
+      });
+      window.google.accounts.id.renderButton(googleBtnRef.current, {
+        type: "standard",
+        theme: "outline",
+        size: "large",
+        text: "signin_with",
+        shape: "pill",
+        width: "100%",
+      });
+    };
+
+    // GSI script may not be loaded yet
+    if (window.google?.accounts?.id) {
+      tryInit();
+    } else {
+      const interval = setInterval(() => {
+        if (window.google?.accounts?.id) {
+          clearInterval(interval);
+          tryInit();
+        }
+      }, 100);
+      return () => clearInterval(interval);
+    }
+  }, [onLogin]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[var(--color-bg-light)] dark:bg-[var(--color-bg-dark)] px-4">
@@ -83,6 +137,17 @@ export default function DashboardLoginPage({ onLogin }: Props) {
               {loading ? "Logging in..." : "Log In"}
             </button>
           </form>
+
+          {GOOGLE_CLIENT_ID && (
+            <>
+              <div className="flex items-center gap-3 my-5">
+                <div className="flex-1 h-px bg-stone-200 dark:bg-stone-700" />
+                <span className="text-xs font-medium text-stone-400 uppercase">or</span>
+                <div className="flex-1 h-px bg-stone-200 dark:bg-stone-700" />
+              </div>
+              <div ref={googleBtnRef} className="flex justify-center" />
+            </>
+          )}
         </div>
       </motion.div>
     </div>

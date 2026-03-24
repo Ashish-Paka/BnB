@@ -6,6 +6,7 @@ import {
   Users,
   UtensilsCrossed,
   QrCode,
+  Settings,
   LogOut,
 } from "lucide-react";
 import { verifyAuth, fetchOrders, updateOrder } from "../lib/api";
@@ -17,8 +18,9 @@ import POSTab from "../components/dashboard/POSTab";
 import CustomersTab from "../components/dashboard/CustomersTab";
 import MenuTab from "../components/dashboard/MenuTab";
 import OTPTab from "../components/dashboard/OTPTab";
+import SettingsTab from "../components/dashboard/SettingsTab";
 
-type Tab = "orders" | "pos" | "customers" | "menu" | "otp";
+type Tab = "orders" | "pos" | "customers" | "menu" | "otp" | "settings";
 
 export default function DashboardPage() {
   const [authed, setAuthed] = useState(false);
@@ -156,6 +158,7 @@ export default function DashboardPage() {
       icon: <UtensilsCrossed className="w-5 h-5" />,
     },
     { id: "otp", label: "OTP", icon: <QrCode className="w-5 h-5" /> },
+    { id: "settings", label: "Settings", icon: <Settings className="w-5 h-5" /> },
   ];
 
   const nextStatus: Record<string, Order["status"] | null> = {
@@ -360,6 +363,9 @@ export default function DashboardPage() {
 
         {/* OTP TAB */}
         {activeTab === "otp" && <OTPTab />}
+
+        {/* SETTINGS TAB */}
+        {activeTab === "settings" && <SettingsTab addToast={addToast} />}
       </div>
     </div>
   );

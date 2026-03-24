@@ -1,5 +1,6 @@
 import type { Context } from "@netlify/functions";
 import { getMenu, setMenu } from "./_shared/store.js";
+import { requireOwner } from "./_shared/auth.js";
 import type { MenuItem } from "./_shared/types.js";
 
 const SEED_MENU: MenuItem[] = [
@@ -100,7 +101,11 @@ export default async (req: Request, context: Context) => {
     await setMenu(menu);
   }
 
-  // Public: only return available items
+  // If authenticated owner, return all items; otherwise only available
+  const headers = Object.fromEntries(req.headers.entries());
+  if (requireOwner(headers)) {
+    return Response.json(menu);
+  }
   const available = menu.filter((item) => item.is_available);
   return Response.json(available);
 };

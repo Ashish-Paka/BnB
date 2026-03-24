@@ -1,22 +1,23 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, Plus, Minus, ShoppingBag, User } from "lucide-react";
-import { fetchMenu, createOrder } from "../../lib/api";
+import { fetchMenu, createOrder, getMenuImageUrl } from "../../lib/api";
 import { useCart } from "../../contexts/CartContext";
 import type { MenuItem } from "../../lib/types";
-import { CATEGORIES, CATEGORY_LABELS } from "../../lib/constants";
+import { deriveCategories, categoryLabel } from "../../lib/constants";
 
 interface Props {
   open: boolean;
   onClose: () => void;
   onOrderPlaced?: (orderId: string) => void;
   customerId?: string | null;
+  orderingEnabled: boolean;
 }
 
-export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId }: Props) {
+export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId, orderingEnabled }: Props) {
   const [menu, setMenu] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeCategory, setActiveCategory] = useState<string>("coffee");
+  const [activeCategory, setActiveCategory] = useState<string>("");
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const [showCheckout, setShowCheckout] = useState(false);
@@ -24,12 +25,19 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId }
   const [placing, setPlacing] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const cart = useCart();
+  const categories = useMemo(() => deriveCategories(menu), [menu]);
 
   useEffect(() => {
     if (open) {
       setLoading(true);
       fetchMenu()
-        .then(setMenu)
+        .then((data) => {
+          setMenu(data);
+          const cats = deriveCategories(data);
+          if (cats.length > 0 && !cats.includes(activeCategory)) {
+            setActiveCategory(cats[0]);
+          }
+        })
         .catch(() => {})
         .finally(() => setLoading(false));
     }
@@ -118,7 +126,7 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId }
           Menu
         </h2>
         <div className="flex items-center gap-3">
-          {cart.itemCount > 0 && (
+          {orderingEnabled && cart.itemCount > 0 && (
             <button
               onClick={() => { setShowCheckout(true); setOrderPlaced(false); }}
               className="relative flex items-center gap-2 bg-brand-olive text-white px-4 py-2 rounded-full font-bold text-sm shadow-lg"
@@ -141,7 +149,7 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId }
 
       {/* Category tabs */}
       <div className="px-4 py-3 flex gap-2 overflow-x-auto">
-        {CATEGORIES.map((cat) => (
+        {categories.map((cat) => (
           <button
             key={cat}
             onClick={() => setActiveCategory(cat)}
@@ -151,7 +159,7 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId }
                 : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400"
             }`}
           >
-            {CATEGORY_LABELS[cat] || cat}
+            {categoryLabel(cat)}
           </button>
         ))}
       </div>
@@ -163,13 +171,21 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId }
         ) : (
           <div className="grid gap-3 mt-2">
             {filteredMenu.map((item) => (
-              <motion.button
+              <motion.div
                 key={item.id}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => handleSelectItem(item)}
-                className="w-full text-left p-4 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200/50 dark:border-stone-700/50 shadow-sm hover:shadow-md transition-all flex items-center justify-between gap-4"
+                whileTap={orderingEnabled ? { scale: 0.98 } : undefined}
+                onClick={orderingEnabled ? () => handleSelectItem(item) : undefined}
+                className={`w-full text-left p-4 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200/50 dark:border-stone-700/50 shadow-sm transition-all flex items-center justify-between gap-4 ${orderingEnabled ? "cursor-pointer hover:shadow-md" : ""}`}
               >
-                <div>
+                {item.has_image && (
+                  <img
+                    src={getMenuImageUrl(item.id)}
+                    alt=""
+                    className="w-16 h-16 rounded-xl object-cover shrink-0"
+                    loading="lazy"
+                  />
+                )}
+                <div className="flex-1 min-w-0">
                   <h4 className="font-bold text-stone-800 dark:text-stone-200">
                     {item.name}
                   </h4>
@@ -186,11 +202,13 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId }
                   <span className="font-bold text-brand-olive text-lg">
                     {formatPrice(item.base_price_cents)}
                   </span>
-                  <div className="w-8 h-8 rounded-full bg-brand-olive/10 flex items-center justify-center text-brand-olive">
-                    <Plus className="w-5 h-5" />
-                  </div>
+                  {orderingEnabled && (
+                    <div className="w-8 h-8 rounded-full bg-brand-olive/10 flex items-center justify-center text-brand-olive">
+                      <Plus className="w-5 h-5" />
+                    </div>
+                  )}
                 </div>
-              </motion.button>
+              </motion.div>
             ))}
           </div>
         )}

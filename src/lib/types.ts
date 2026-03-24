@@ -8,10 +8,11 @@ export interface MenuItem {
   name: string;
   description: string;
   base_price_cents: number;
-  category: "coffee" | "lemonade";
+  category: string;
   is_available: boolean;
   sort_order: number;
   options?: MenuItemOption[];
+  has_image?: boolean;
 }
 
 export interface CartItem {
@@ -64,9 +65,16 @@ export interface Visit {
   date: string; // YYYY-MM-DD
 }
 
+export interface GoogleAccount {
+  email: string;
+  role: "primary" | "secondary" | "admin";
+}
+
 export interface AppConfig {
   totp_secret: string;
   totp_period_seconds: number;
   owner_password_hash: string;
   unknown_customer_seq: number;
+  in_store_ordering_enabled: boolean;
+  google_accounts?: GoogleAccount[];
 }

@@ -1,5 +1,13 @@
-import { motion } from "motion/react";
-import { PawPrint, Bone, Dog } from "lucide-react";
+const trails = [
+  // Left side — trail walking upward, rotated to go up-left
+  { top: "8%", left: "-4%", rotation: -30, scale: 1.8, opacity: 0.10 },
+  // Right side — trail walking downward, rotated opposite
+  { top: "40%", right: "-6%", rotation: 150, scale: 2.2, opacity: 0.08 },
+  // Bottom left — smaller trail
+  { bottom: "5%", left: "2%", rotation: -50, scale: 1.4, opacity: 0.12 },
+  // Top right — faint large trail
+  { top: "60%", right: "0%", rotation: 45, scale: 1.6, opacity: 0.06 },
+];
 
 export default function FloatingDecorations() {
   return (
@@ -18,47 +26,23 @@ export default function FloatingDecorations() {
         style={{ contain: "strict" }}
       />
 
-      {/* Floating Dog Elements */}
-      <motion.div
-        animate={{ y: [0, -20, 0], rotate: [0, 10, -10, 0] }}
-        transition={{ repeat: Infinity, duration: 8, ease: "easeInOut" }}
-        className="fixed top-[10%] left-[5%] md:left-[10%] text-brand-orange/20 dark:text-brand-orange/10 pointer-events-none z-0"
-      >
-        <PawPrint className="w-16 h-16 md:w-32 md:h-32" />
-      </motion.div>
-      <motion.div
-        animate={{ y: [0, 20, 0], rotate: [0, -15, 15, 0] }}
-        transition={{
-          repeat: Infinity,
-          duration: 10,
-          ease: "easeInOut",
-          delay: 1,
-        }}
-        className="fixed bottom-[15%] right-[5%] md:right-[10%] text-brand-pink/20 dark:text-brand-pink/10 pointer-events-none z-0"
-      >
-        <Bone className="w-16 h-16 md:w-28 md:h-28" />
-      </motion.div>
-
-      {/* Animated Dog Catching Ball */}
-      <motion.div
-        animate={{ x: ["-20vw", "120vw"] }}
-        transition={{ duration: 12, ease: "linear", repeat: Infinity }}
-        className="fixed bottom-12 left-0 flex items-end gap-3 md:gap-4 z-10 opacity-30 dark:opacity-20 pointer-events-none"
-      >
-        <motion.div
-          animate={{ y: [0, -30, 0], rotate: [0, -5, 5, 0] }}
-          transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+      {/* Footprint trails — static, placed at edges in different orientations */}
+      {trails.map((t, i) => (
+        <div
+          key={i}
+          className="fixed pointer-events-none z-0"
+          style={{
+            top: t.top,
+            left: t.left,
+            right: t.right,
+            bottom: t.bottom,
+            opacity: t.opacity,
+            transform: `rotate(${t.rotation}deg) scale(${t.scale})`,
+          }}
         >
-          <Dog className="w-16 h-16 md:w-24 md:h-24 text-brand-pink fill-current" />
-        </motion.div>
-        <motion.div
-          animate={{ y: [0, -50, 0], rotate: 360 }}
-          transition={{ duration: 1.5, repeat: Infinity, ease: "easeOut" }}
-          className="mb-4"
-        >
-          <div className="w-5 h-5 md:w-7 md:h-7 rounded-full bg-brand-orange shadow-lg" />
-        </motion.div>
-      </motion.div>
+          <img src="/footprints.gif" alt="" className="w-64 h-64 md:w-80 md:h-80 object-contain" />
+        </div>
+      ))}
     </>
   );
 }

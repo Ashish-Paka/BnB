@@ -13,7 +13,7 @@ import RewardsBanner from "../components/rewards/RewardsBanner";
 import InCafeBanner from "../components/order/InCafeBanner";
 import MenuOverlay from "../components/order/MenuOverlay";
 import { useCart } from "../contexts/CartContext";
-import { fetchOrderStatus, checkRewards } from "../lib/api";
+import { fetchOrderStatus, checkRewards, fetchPublicConfig } from "../lib/api";
 
 function getStoredCustomerId(): string | null {
   try {
@@ -41,6 +41,8 @@ export default function CustomerPage() {
   });
   const [rewardsRefresh, setRewardsRefresh] = useState(0);
   const cart = useCart();
+
+  const [orderingEnabled, setOrderingEnabled] = useState(false);
 
   // Order tracking state
   const [activeOrderId, setActiveOrderId] = useState<string | null>(() =>
@@ -111,6 +113,12 @@ export default function CustomerPage() {
   };
 
   useEffect(() => {
+    fetchPublicConfig()
+      .then((c) => setOrderingEnabled(c.in_store_ordering_enabled))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
     const preloadImages = async () => {
       const images = [
         logo,
@@ -153,6 +161,16 @@ export default function CustomerPage() {
         <ThemeToggle isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
 
         <main className="w-full max-w-2xl lg:max-w-3xl z-10 px-6 sm:px-8 pb-16 md:pb-24 flex flex-col items-center">
+          {/* Rewards — most prominent, first in content */}
+          <RewardsBanner
+            pendingOtpCode={pendingOtp}
+            onOtpProcessed={() => {
+              setPendingOtp(null);
+              history.replaceState({}, "", "/");
+            }}
+            refreshTrigger={rewardsRefresh}
+          />
+
           {/* Order Online (existing CTA) */}
           <CTABanner />
 
@@ -161,16 +179,7 @@ export default function CustomerPage() {
             onOpen={() => setShowMenu(true)}
             itemCount={cart.itemCount}
             orderStatus={activeOrderStatus}
-          />
-
-          {/* Rewards */}
-          <RewardsBanner
-            pendingOtpCode={pendingOtp}
-            onOtpProcessed={() => {
-              setPendingOtp(null);
-              history.replaceState({}, "", "/");
-            }}
-            refreshTrigger={rewardsRefresh}
+            orderingEnabled={orderingEnabled}
           />
 
           {/* Social Links */}
@@ -192,6 +201,7 @@ export default function CustomerPage() {
             onClose={() => setShowMenu(false)}
             onOrderPlaced={handleOrderPlaced}
             customerId={getStoredCustomerId()}
+            orderingEnabled={orderingEnabled}
           />
         )}
       </AnimatePresence>

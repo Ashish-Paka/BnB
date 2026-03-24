@@ -16,9 +16,6 @@ export default function Footer() {
       className="text-center pb-8 md:pb-12"
     >
       <div className="h-px w-16 md:w-20 bg-stone-200 dark:bg-stone-800 mx-auto mb-6 md:mb-8" />
-      <p className="font-serif italic text-stone-500 dark:text-stone-400 text-lg md:text-xl mb-8">
-        "Thank you for supporting our small business!"
-      </p>
 
       {/* Address Bar / Navigate */}
       <motion.a
@@ -33,12 +30,12 @@ export default function Footer() {
           <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-brand-olive/10 dark:bg-brand-olive/20 flex items-center justify-center text-brand-olive shrink-0">
             <Map className="w-5 h-5 md:w-6 md:h-6" />
           </div>
-          <div className="text-left truncate">
+          <div className="text-left">
             <p className="text-[10px] md:text-xs uppercase tracking-widest font-bold text-stone-400 leading-none mb-1">
               Location
             </p>
-            <p className="text-stone-800 dark:text-stone-200 font-semibold text-sm md:text-base truncate">
-              410 W 1st St #104 Tempe, AZ
+            <p className="text-stone-800 dark:text-stone-200 font-semibold text-sm md:text-base">
+              410 W 1st St #104, Tempe, AZ 85281
             </p>
           </div>
         </div>

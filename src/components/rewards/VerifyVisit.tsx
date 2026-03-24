@@ -19,12 +19,13 @@ export default function VerifyVisit({ customerId, onVerified, onRedeemed, initia
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
   const autoSubmitted = useRef(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const scannerRef = useRef<{ stream: MediaStream | null; animFrame: number }>({
     stream: null,
     animFrame: 0,
   });
 
-  const canScan =
+  const hasBarcodeDetector =
     typeof window !== "undefined" && "BarcodeDetector" in window;
 
   // Auto-fill and auto-submit if initialCode provided
@@ -51,6 +52,27 @@ export default function VerifyVisit({ customerId, onVerified, onRedeemed, initia
     setShowScanner(false);
   };
 
+  const handleQrResult = (raw: string) => {
+    // Extract otp param from URL like /?otp=123456
+    const match = raw.match(/[?&]otp=(\d{6})/);
+    if (match) {
+      stopScanner();
+      const digits = match[1].split("");
+      setCode(digits);
+      submitCode(match[1]);
+      return true;
+    }
+    // Also accept raw 6-digit code
+    if (/^\d{6}$/.test(raw)) {
+      stopScanner();
+      const digits = raw.split("");
+      setCode(digits);
+      submitCode(raw);
+      return true;
+    }
+    return false;
+  };
+
   const startScanner = async () => {
     setShowScanner(true);
     try {
@@ -62,41 +84,40 @@ export default function VerifyVisit({ customerId, onVerified, onRedeemed, initia
         videoRef.current.srcObject = stream;
         videoRef.current.play();
       }
-      const detector = new (window as any).BarcodeDetector({
-        formats: ["qr_code"],
-      });
-      const scan = async () => {
-        if (videoRef.current && videoRef.current.readyState >= 2) {
-          try {
-            const barcodes = await detector.detect(videoRef.current);
-            for (const barcode of barcodes) {
-              const raw: string = barcode.rawValue;
-              // Extract otp param from URL like /?otp=123456
-              const match = raw.match(/[?&]otp=(\d{6})/);
-              if (match) {
-                const otp = match[1];
-                stopScanner();
-                const digits = otp.split("");
-                setCode(digits);
-                submitCode(otp);
-                return;
+
+      if (hasBarcodeDetector) {
+        // Native BarcodeDetector (Chrome/Edge)
+        const detector = new (window as any).BarcodeDetector({ formats: ["qr_code"] });
+        const scan = async () => {
+          if (videoRef.current && videoRef.current.readyState >= 2) {
+            try {
+              const barcodes = await detector.detect(videoRef.current);
+              for (const barcode of barcodes) {
+                if (handleQrResult(barcode.rawValue)) return;
               }
-              // Also accept raw 6-digit code
-              if (/^\d{6}$/.test(raw)) {
-                stopScanner();
-                const digits = raw.split("");
-                setCode(digits);
-                submitCode(raw);
-                return;
-              }
-            }
-          } catch {
-            // ignore detection errors
+            } catch {}
           }
-        }
+          scannerRef.current.animFrame = requestAnimationFrame(scan);
+        };
         scannerRef.current.animFrame = requestAnimationFrame(scan);
-      };
-      scannerRef.current.animFrame = requestAnimationFrame(scan);
+      } else {
+        // Fallback: jsQR library (Safari/Firefox)
+        const jsQR = (await import("jsqr")).default;
+        const canvas = canvasRef.current;
+        const ctx = canvas?.getContext("2d", { willReadFrequently: true });
+        const scan = () => {
+          if (videoRef.current && videoRef.current.readyState >= 2 && canvas && ctx) {
+            canvas.width = videoRef.current.videoWidth;
+            canvas.height = videoRef.current.videoHeight;
+            ctx.drawImage(videoRef.current, 0, 0);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const result = jsQR(imageData.data, canvas.width, canvas.height);
+            if (result?.data && handleQrResult(result.data)) return;
+          }
+          scannerRef.current.animFrame = requestAnimationFrame(scan);
+        };
+        scannerRef.current.animFrame = requestAnimationFrame(scan);
+      }
     } catch {
       stopScanner();
     }
@@ -177,6 +198,9 @@ export default function VerifyVisit({ customerId, onVerified, onRedeemed, initia
           : "Scan the QR code or enter the code from the barista"}
       </p>
 
+      {/* Hidden canvas for jsQR fallback */}
+      <canvas ref={canvasRef} className="hidden" />
+
       {/* QR Scanner */}
       {showScanner && (
         <div className="relative w-full max-w-[260px] aspect-square rounded-2xl overflow-hidden bg-black">
@@ -199,11 +223,11 @@ export default function VerifyVisit({ customerId, onVerified, onRedeemed, initia
         </div>
       )}
 
-      {/* Scan button */}
-      {canScan && !showScanner && (
+      {/* Scan button — always shown */}
+      {!showScanner && (
         <button
           onClick={startScanner}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-orange/10 text-brand-orange font-bold text-sm hover:bg-brand-orange/20 transition-colors"
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-colors ${mode === "redeem" ? "bg-green-500/10 text-green-600 hover:bg-green-500/20" : "bg-brand-orange/10 text-brand-orange hover:bg-brand-orange/20"}`}
         >
           <Camera className="w-4 h-4" />
           Scan QR Code
@@ -212,13 +236,11 @@ export default function VerifyVisit({ customerId, onVerified, onRedeemed, initia
 
       {!showScanner && (
         <>
-          {canScan && (
-            <div className="flex items-center gap-3 w-full max-w-[260px]">
-              <div className="flex-1 h-px bg-stone-200 dark:bg-stone-700" />
-              <span className="text-xs text-stone-400 font-medium">or enter code</span>
-              <div className="flex-1 h-px bg-stone-200 dark:bg-stone-700" />
-            </div>
-          )}
+          <div className="flex items-center gap-3 w-full max-w-[260px]">
+            <div className="flex-1 h-px bg-stone-200 dark:bg-stone-700" />
+            <span className="text-xs text-stone-400 font-medium">or enter code</span>
+            <div className="flex-1 h-px bg-stone-200 dark:bg-stone-700" />
+          </div>
 
           {/* Code input */}
           <div className="flex gap-2" onPaste={handlePaste}>

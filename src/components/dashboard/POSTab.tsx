@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Search, Plus, Minus, X, Gift, UserPlus, User } from "lucide-react";
-import { fetchMenu, fetchCustomers, createOrder, checkRewards } from "../../lib/api";
+import { fetchMenu, fetchCustomers, createOrder, checkRewards, getMenuImageUrl } from "../../lib/api";
 import type { MenuItem, Customer, OrderItem } from "../../lib/types";
-import { CATEGORIES, CATEGORY_LABELS, REWARD_THRESHOLD } from "../../lib/constants";
+import { deriveCategories, categoryLabel, REWARD_THRESHOLD } from "../../lib/constants";
 import Modal from "../ui/Modal";
 
 interface POSCartItem {
@@ -24,7 +24,7 @@ export default function POSTab({ onOrderCreated, addToast }: Props) {
   const [cart, setCart] = useState<POSCartItem[]>([]);
   const [search, setSearch] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [activeCategory, setActiveCategory] = useState<string>("coffee");
+  const [activeCategory, setActiveCategory] = useState<string>("");
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const [freeReward, setFreeReward] = useState(false);
@@ -34,8 +34,14 @@ export default function POSTab({ onOrderCreated, addToast }: Props) {
   const [newPhone, setNewPhone] = useState("");
   const [creatingCustomer, setCreatingCustomer] = useState(false);
 
+  const categories = useMemo(() => deriveCategories(menu), [menu]);
+
   useEffect(() => {
-    fetchMenu().then(setMenu).catch(() => {});
+    fetchMenu().then((data) => {
+      setMenu(data);
+      const cats = deriveCategories(data);
+      if (cats.length > 0) setActiveCategory(cats[0]);
+    }).catch(() => {});
     fetchCustomers().then(setCustomers).catch(() => {});
   }, []);
 
@@ -180,7 +186,7 @@ export default function POSTab({ onOrderCreated, addToast }: Props) {
       {/* Left: Menu Grid */}
       <div className="md:col-span-3">
         <div className="flex gap-2 mb-3 overflow-x-auto">
-          {CATEGORIES.map((cat) => (
+          {categories.map((cat) => (
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
@@ -190,7 +196,7 @@ export default function POSTab({ onOrderCreated, addToast }: Props) {
                   : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400"
               }`}
             >
-              {CATEGORY_LABELS[cat] || cat}
+              {categoryLabel(cat)}
             </button>
           ))}
         </div>
@@ -201,8 +207,16 @@ export default function POSTab({ onOrderCreated, addToast }: Props) {
               key={item.id}
               whileTap={{ scale: 0.97 }}
               onClick={() => handleSelectItem(item)}
-              className="p-3 rounded-xl bg-white dark:bg-stone-900 border border-stone-200/50 dark:border-stone-700/50 text-left hover:shadow-md transition-all"
+              className="p-3 rounded-xl bg-white dark:bg-stone-900 border border-stone-200/50 dark:border-stone-700/50 text-left hover:shadow-md transition-all overflow-hidden"
             >
+              {item.has_image && (
+                <img
+                  src={getMenuImageUrl(item.id)}
+                  alt=""
+                  className="w-full h-16 object-cover rounded-lg mb-1.5"
+                  loading="lazy"
+                />
+              )}
               <p className="font-bold text-sm text-stone-800 dark:text-stone-200 truncate">
                 {item.name}
               </p>

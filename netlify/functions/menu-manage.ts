@@ -1,5 +1,5 @@
 import type { Context } from "@netlify/functions";
-import { getMenu, setMenu } from "./_shared/store.js";
+import { getMenu, setMenu, deleteMenuImage } from "./_shared/store.js";
 import { requireOwner } from "./_shared/auth.js";
 import type { MenuItem } from "./_shared/types.js";
 
@@ -44,6 +44,7 @@ export default async (req: Request, context: Context) => {
     if (idx === -1) return new Response("Not found", { status: 404 });
     const [removed] = menu.splice(idx, 1);
     await setMenu(menu);
+    if (removed.has_image) await deleteMenuImage(removed.id);
     return Response.json(removed);
   }
 

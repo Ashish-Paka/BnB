@@ -25,6 +25,33 @@ async function request<T>(
 // Menu
 export const fetchMenu = () => request<MenuItem[]>("menu-list");
 
+export const getMenuImageUrl = (itemId: string) =>
+  `${API_BASE}/menu-image?id=${itemId}`;
+
+export async function uploadMenuImage(itemId: string, imageBlob: Blob): Promise<void> {
+  const token = localStorage.getItem("owner_token");
+  const res = await fetch(`${API_BASE}/menu-image?id=${itemId}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": imageBlob.type,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: imageBlob,
+  });
+  if (!res.ok) throw new Error(await res.text());
+}
+
+export async function deleteMenuItemImage(itemId: string): Promise<void> {
+  const token = localStorage.getItem("owner_token");
+  const res = await fetch(`${API_BASE}/menu-image?id=${itemId}`, {
+    method: "DELETE",
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  if (!res.ok) throw new Error(await res.text());
+}
+
 export const manageMenuItem = (
   method: "POST" | "PUT" | "DELETE",
   item: Partial<MenuItem>
@@ -122,6 +149,40 @@ export const verifyTotp = (code: string, customerId: string, redeem?: boolean) =
     body: JSON.stringify({ code, customer_id: customerId, ...(redeem ? { redeem: true } : {}) }),
   });
 
+// Config
+export const fetchPublicConfig = () =>
+  request<{ in_store_ordering_enabled: boolean }>("config-public");
+
+export const updateConfig = (updates: { in_store_ordering_enabled: boolean }) =>
+  request<{ in_store_ordering_enabled: boolean }>("config-update", {
+    method: "PUT",
+    body: JSON.stringify(updates),
+  });
+
+// Backup
+type BackupData = {
+  menu: MenuItem[];
+  customers: Customer[];
+  orders: Order[];
+  visits: Visit[];
+  config: any;
+  images: Record<string, { data: string; content_type: string }>;
+  exported_at: string;
+};
+
+export const exportBackup = () => request<BackupData>("backup-export");
+
+export const exportBackupOnline = () => request<BackupData>("backup-export?save=true");
+
+export const fetchBackupStatus = () =>
+  request<{ has_backup: boolean; exported_at?: string }>("backup-status");
+
+export const importBackup = (data: any, mode: "overwrite" | "combine" = "overwrite") =>
+  request<{ success: boolean; mode: string; imported: Record<string, number | boolean> }>("backup-import", {
+    method: "POST",
+    body: JSON.stringify({ ...data, mode }),
+  });
+
 // Auth
 export const ownerLogin = (password: string) =>
   request<{ token: string }>("auth-login", {
@@ -130,3 +191,49 @@ export const ownerLogin = (password: string) =>
   });
 
 export const verifyAuth = () => request<{ valid: boolean }>("auth-verify");
+
+export const googleLogin = (idToken: string) =>
+  request<{ token: string }>("auth-google", {
+    method: "POST",
+    body: JSON.stringify({ id_token: idToken }),
+  });
+
+export const addGoogleAccount = (idToken: string, role?: "secondary" | "admin") =>
+  request<{ success: boolean; google_accounts: { email: string; role: "primary" | "secondary" | "admin" }[] }>("auth-link-google", {
+    method: "POST",
+    body: JSON.stringify({ action: "add", id_token: idToken, ...(role ? { role } : {}) }),
+  });
+
+export const removeGoogleAccount = (email: string) =>
+  request<{ success: boolean; google_accounts: { email: string; role: "primary" | "secondary" | "admin" }[] }>("auth-link-google", {
+    method: "POST",
+    body: JSON.stringify({ action: "remove", email }),
+  });
+
+export const setPrimaryAccount = (email: string) =>
+  request<{ success: boolean; google_accounts: { email: string; role: "primary" | "secondary" | "admin" }[] }>("auth-link-google", {
+    method: "POST",
+    body: JSON.stringify({ action: "set_primary", email }),
+  });
+
+export const replaceGoogleAccount = (idToken: string, oldEmail: string) =>
+  request<{ success: boolean; google_accounts: { email: string; role: "primary" | "secondary" | "admin" }[] }>("auth-link-google", {
+    method: "POST",
+    body: JSON.stringify({ action: "replace", id_token: idToken, old_email: oldEmail }),
+  });
+
+export const fetchSettings = () =>
+  request<{
+    google_accounts: { email: string; role: "primary" | "secondary" | "admin" }[];
+    login_method: string;
+    can_change_password: boolean;
+    is_owner: boolean;
+    is_admin: boolean;
+    has_admin_password: boolean;
+  }>("auth-settings");
+
+export const changePassword = (current_password: string, new_password: string, password_type: "owner" | "admin" = "owner") =>
+  request<{ success: boolean }>("auth-change-password", {
+    method: "POST",
+    body: JSON.stringify({ current_password, new_password, password_type }),
+  });

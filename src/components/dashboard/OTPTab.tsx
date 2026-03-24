@@ -72,62 +72,36 @@ export default function OTPTab() {
 
       {otpData ? (
         <>
-          {/* Code display with countdown ring */}
-          <div className="relative mb-8">
-            {/* Countdown ring */}
-            <svg
-              className="absolute -inset-4 -rotate-90"
-              viewBox="0 0 200 120"
-            >
-              <rect
-                x="4"
-                y="4"
-                width="192"
-                height="112"
-                rx="28"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="3"
-                className="text-stone-200 dark:text-stone-700"
-              />
-              <rect
-                x="4"
-                y="4"
-                width="192"
-                height="112"
-                rx="28"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="3"
-                strokeDasharray={`${progress * 608} 608`}
-                className="text-brand-orange transition-all duration-1000"
-              />
-            </svg>
+          {/* Code display */}
+          <div className="bg-white dark:bg-stone-900 rounded-3xl shadow-xl border border-stone-200/50 dark:border-stone-700/50 px-8 py-6 md:px-12 md:py-8 mb-4">
+            <p className="text-5xl md:text-7xl font-mono font-black tracking-[0.3em] text-brand-orange text-center select-all">
+              {otpData.code}
+            </p>
+          </div>
 
-            <div className="bg-white dark:bg-stone-900 rounded-3xl shadow-xl border border-stone-200/50 dark:border-stone-700/50 px-8 py-6 md:px-12 md:py-8">
-              <p className="text-5xl md:text-7xl font-mono font-black tracking-[0.3em] text-brand-orange text-center select-all">
-                {otpData.code}
-              </p>
+          {/* Timer bar */}
+          <div className="w-full max-w-xs mb-8">
+            <div className="h-1.5 rounded-full bg-stone-200 dark:bg-stone-700 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-brand-orange transition-all duration-1000 ease-linear"
+                style={{ width: `${progress * 100}%` }}
+              />
+            </div>
+            <div className="flex items-center justify-center gap-2 mt-2 text-stone-500 dark:text-stone-400">
+              <RefreshCw className={`w-3.5 h-3.5 ${countdown <= 30 ? "animate-spin" : ""}`} />
+              <span className="text-xs font-medium tabular-nums">
+                Refreshes in {minutes}:{String(seconds).padStart(2, "0")}
+              </span>
             </div>
           </div>
 
           {/* QR Code */}
           {qrDataUrl && (
-            <div className="mb-6 bg-white rounded-2xl p-3 shadow-md border border-stone-200/50 dark:border-stone-700/50">
-              <img src={qrDataUrl} alt="Scan to verify visit" className="w-48 h-48" />
+            <div className="mb-2 bg-white rounded-2xl p-3 shadow-md border border-stone-200/50 dark:border-stone-700/50">
+              <img src={qrDataUrl} alt="Scan to verify visit" className="w-44 h-44" />
             </div>
           )}
-          <p className="text-stone-400 text-xs mb-4 text-center">Customers can scan this QR code to auto-verify</p>
-
-          {/* Timer */}
-          <div className="flex items-center gap-2 text-stone-500 dark:text-stone-400 mb-8">
-            <RefreshCw
-              className={`w-4 h-4 ${countdown <= 30 ? "animate-spin" : ""}`}
-            />
-            <span className="text-sm font-medium tabular-nums">
-              Refreshes in {minutes}:{String(seconds).padStart(2, "0")}
-            </span>
-          </div>
+          <p className="text-stone-400 text-xs mb-8 text-center">Customers scan this QR code to auto-verify</p>
 
           {/* Instructions */}
           <div className="max-w-sm bg-stone-50 dark:bg-stone-900 rounded-2xl border border-stone-200/50 dark:border-stone-700/50 p-5">
