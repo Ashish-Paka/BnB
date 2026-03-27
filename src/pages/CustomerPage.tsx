@@ -28,8 +28,10 @@ function getStoredCustomerId(): string | null {
 
 export default function CustomerPage() {
   const [isDarkMode, setIsDarkMode] = useState(() => {
-    if (typeof document !== "undefined") {
-      return document.documentElement.classList.contains("dark");
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("theme");
+      if (stored) return stored === "dark";
+      return window.matchMedia("(prefers-color-scheme: dark)").matches;
     }
     return false;
   });
@@ -152,6 +154,13 @@ export default function CustomerPage() {
       localStorage.setItem("theme", "light");
     }
   }, [isDarkMode]);
+
+  // Enable transitions after initial paint to prevent flash
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      document.body.classList.add("transitions-ready");
+    });
+  }, []);
 
   return (
     <>

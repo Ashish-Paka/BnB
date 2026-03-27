@@ -6,6 +6,8 @@ interface Props {
   size?: number;
 }
 
+const FILLED_COLOR = "#22c55e"; // green-500
+
 export default function CircularProgress({
   current,
   total,
@@ -14,8 +16,6 @@ export default function CircularProgress({
   const strokeWidth = size * 0.08;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-  const progress = Math.min(current / total, 1);
-  const dashOffset = circumference * (1 - progress);
 
   return (
     <div className="relative" style={{ width: size, height: size }}>
@@ -28,7 +28,7 @@ export default function CircularProgress({
           fill="none"
           stroke="currentColor"
           strokeWidth={strokeWidth}
-          className="text-stone-200 dark:text-stone-700"
+          className="text-white/20"
         />
         {/* Progress segments */}
         {Array.from({ length: total }).map((_, i) => {
@@ -52,21 +52,17 @@ export default function CircularProgress({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: i * 0.05 }}
-              className={
-                isFilled
-                  ? "text-brand-orange stroke-current"
-                  : "text-stone-300 dark:text-stone-600 stroke-current"
-              }
+              stroke={isFilled ? FILLED_COLOR : "rgba(255,255,255,0.25)"}
             />
           );
         })}
       </svg>
       {/* Center text */}
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-lg font-black text-stone-800 dark:text-stone-200 leading-none">
+        <span className="text-xl font-black text-white leading-none drop-shadow-md">
           {current}
         </span>
-        <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider">
+        <span className="text-[10px] font-extrabold text-white/90 uppercase tracking-wider drop-shadow-sm">
           /{total}
         </span>
       </div>

@@ -1,12 +1,12 @@
 const trails = [
-  // Left side — trail walking upward, rotated to go up-left
-  { top: "8%", left: "-4%", rotation: -30, scale: 1.8, opacity: 0.10 },
-  // Right side — trail walking downward, rotated opposite
-  { top: "40%", right: "-6%", rotation: 150, scale: 2.2, opacity: 0.08 },
+  // Left side — trail walking upward
+  { top: "8%", left: "-4%", rotation: -30, scale: 1.8, opacity: 0.10, hue: 0 },
+  // Right side — trail walking downward
+  { top: "40%", right: "-6%", rotation: 150, scale: 2.2, opacity: 0.08, hue: 60 },
   // Bottom left — smaller trail
-  { bottom: "5%", left: "2%", rotation: -50, scale: 1.4, opacity: 0.12 },
+  { bottom: "5%", left: "2%", rotation: -50, scale: 1.4, opacity: 0.12, hue: 180 },
   // Top right — faint large trail
-  { top: "60%", right: "0%", rotation: 45, scale: 1.6, opacity: 0.06 },
+  { top: "60%", right: "0%", rotation: 45, scale: 1.6, opacity: 0.06, hue: 270 },
 ];
 
 export default function FloatingDecorations() {
@@ -26,7 +26,7 @@ export default function FloatingDecorations() {
         style={{ contain: "strict" }}
       />
 
-      {/* Footprint trails — static, placed at edges in different orientations */}
+      {/* Footprint trails — different hue per trail, light paws in dark mode, dark paws in light mode */}
       {trails.map((t, i) => (
         <div
           key={i}
@@ -40,7 +40,24 @@ export default function FloatingDecorations() {
             transform: `rotate(${t.rotation}deg) scale(${t.scale})`,
           }}
         >
-          <img src="/footprints.gif" alt="" className="w-64 h-64 md:w-80 md:h-80 object-contain" />
+          {/* Light mode: dark tinted paws */}
+          <img
+            src="/footprints.gif"
+            alt=""
+            className="w-64 h-64 md:w-80 md:h-80 object-contain block dark:hidden"
+            style={{
+              filter: `sepia(1) saturate(2) hue-rotate(${t.hue}deg) brightness(0.4)`,
+            }}
+          />
+          {/* Dark mode: light tinted paws */}
+          <img
+            src="/footprints.gif"
+            alt=""
+            className="w-64 h-64 md:w-80 md:h-80 object-contain hidden dark:block"
+            style={{
+              filter: `invert(1) sepia(1) saturate(1.5) hue-rotate(${t.hue}deg) brightness(1.5)`,
+            }}
+          />
         </div>
       ))}
     </>

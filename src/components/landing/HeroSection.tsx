@@ -26,7 +26,7 @@ export default function HeroSection() {
   return (
     <>
       {/* Hero Header Section with Scrolling Background */}
-      <div className="relative w-full h-[50dvh] min-h-[420px] max-h-[600px] flex items-center justify-center overflow-hidden rounded-b-[2.5rem] md:rounded-b-[4rem] shadow-xl">
+      <div className="relative z-[1] w-full h-[50dvh] min-h-[420px] max-h-[600px] flex items-center justify-center overflow-hidden rounded-b-[2.5rem] md:rounded-b-[4rem] shadow-xl">
         <div className="absolute inset-0 overflow-hidden bg-stone-900 border-b-0 flex items-center justify-center">
           {BACKGROUNDS.map((bg, idx) => {
             const isActive = idx === bgIndex;
@@ -65,25 +65,23 @@ export default function HeroSection() {
             );
           })}
         </div>
-        <div className="absolute inset-0 bg-stone-900/60 dark:bg-stone-900/80 z-10 pointer-events-none" />
+        <div className="absolute inset-0 bg-stone-900/40 dark:bg-stone-900/40 z-10 pointer-events-none" />
         <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[var(--color-bg-light)] dark:from-[var(--color-bg-dark)] to-transparent z-10 pointer-events-none" />
       </div>
 
-      {/* Logo */}
+      {/* Logo — 25% bigger, z-[5] so popups (z-200+) go over it, no border, red ring is the edge */}
       <motion.div
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
-        className="relative z-30 -mt-20 sm:-mt-24 md:-mt-32 mb-8 sm:mb-12"
+        className="relative z-[5] -mt-24 sm:-mt-28 md:-mt-36 mb-8 sm:mb-12"
       >
-        <div className="bg-white dark:bg-stone-100 p-2 md:p-3 rounded-full shadow-2xl backdrop-blur-md border-[6px] border-white/50 dark:border-stone-800/50 flex items-center justify-center w-40 h-40 sm:w-48 sm:h-48 md:w-60 md:h-60 transition-all duration-300 mx-auto group hover:scale-105">
-          <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center bg-white p-1 sm:p-2 md:p-3 shadow-inner">
-            <img
-              src={logo}
-              alt="Bones & Bru Logo"
-              className="w-full h-full object-contain scale-[1.05]"
-            />
-          </div>
+        <div className="rounded-full shadow-2xl flex items-center justify-center w-52 h-52 sm:w-60 sm:h-60 md:w-72 md:h-72 transition-all duration-300 mx-auto group hover:scale-105 overflow-hidden">
+          <img
+            src={logo}
+            alt="Bones & Bru Logo"
+            className="w-full h-full object-cover"
+          />
         </div>
       </motion.div>
     </>

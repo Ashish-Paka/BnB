@@ -42,7 +42,11 @@
   body {
     background-color: var(--bg-color);
     color: var(--text-color);
-    @apply font-sans transition-colors duration-500;
+    @apply font-sans;
+  }
+  /* Delay transitions until after initial paint to prevent flash */
+  body.transitions-ready {
+    @apply transition-colors duration-500;
   }
 }
 

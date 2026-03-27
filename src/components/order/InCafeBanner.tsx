@@ -25,35 +25,49 @@ export default function InCafeBanner({ onOpen, itemCount, orderStatus, orderingE
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.05 }}
-      className="block w-full text-left cursor-pointer hover:scale-[1.02] active:scale-[0.98] mb-5 md:mb-7 p-6 sm:p-8 rounded-[3rem] bg-gradient-to-br from-brand-orange via-brand-pink to-brand-orange bg-[length:200%_200%] animate-gradient text-white shadow-[0_20px_50px_-12px_rgba(236,72,153,0.4)] relative overflow-hidden group border border-white/20 transition-all"
+      className="block w-full text-left cursor-pointer hover:scale-[1.02] active:scale-[0.98] mb-5 md:mb-7 p-6 sm:p-8 rounded-[3rem] bg-brand-pink text-white shadow-[0_20px_50px_-12px_rgba(236,72,153,0.4)] relative overflow-hidden group border border-white/20 transition-all"
     >
       <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-125 group-hover:rotate-12 transition-all duration-700 pointer-events-none">
         <Coffee className="w-28 h-28" />
       </div>
 
       <div className="relative z-10">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="font-serif text-xl sm:text-2xl md:text-3xl font-black mb-1 drop-shadow-md">
-              {hasActiveOrder ? "Your Order" : orderingEnabled ? "Place Order" : "Menu"}
-            </h3>
-            <p className="text-white/90 text-sm sm:text-base font-medium drop-shadow-sm">
-              {hasActiveOrder ? "Tap to order more" : orderingEnabled ? "Order ahead from our in-cafe menu" : "Browse our full menu"}
-            </p>
-          </div>
-          <div className="relative">
-            <div className="bg-white/20 backdrop-blur-sm rounded-full p-3">
-              <ShoppingBag className="w-7 h-7" />
+        <div className="flex items-center gap-3 sm:gap-5">
+          {/* Menu logo in circle frame on the left */}
+          <div className="shrink-0">
+            <div className="bg-white/20 rounded-full p-1.5 sm:p-2 backdrop-blur-sm">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-[76px] md:h-[76px] rounded-full bg-white flex items-center justify-center">
+                <ShoppingBag className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 text-brand-pink" />
+              </div>
             </div>
-            {itemCount > 0 && (
-              <motion.span
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="absolute -top-1 -right-1 w-5 h-5 bg-white text-brand-orange rounded-full text-xs font-black flex items-center justify-center shadow"
-              >
-                {itemCount}
-              </motion.span>
-            )}
+          </div>
+
+          {/* Text content on the right */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-serif text-lg sm:text-xl md:text-2xl font-black mb-0.5 drop-shadow-md">
+                  {hasActiveOrder ? "Your Order" : orderingEnabled ? "Place Order" : "Menu"}
+                </h3>
+                <p className="text-white/90 text-sm sm:text-base font-medium drop-shadow-sm">
+                  {hasActiveOrder ? "Tap to order more" : orderingEnabled ? "Order ahead from our in-cafe menu" : "Browse our full menu"}
+                </p>
+              </div>
+              {itemCount > 0 && (
+                <div className="relative shrink-0 ml-2">
+                  <div className="bg-white/20 backdrop-blur-sm rounded-full p-2 sm:p-3">
+                    <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6" />
+                  </div>
+                  <motion.span
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="absolute -top-1 -right-1 w-5 h-5 bg-white text-brand-pink rounded-full text-xs font-black flex items-center justify-center shadow"
+                  >
+                    {itemCount}
+                  </motion.span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -80,7 +94,7 @@ export default function InCafeBanner({ onOpen, itemCount, orderStatus, orderingE
                       transition={isCurrent ? { repeat: Infinity, duration: 2 } : {}}
                       className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors duration-500 ${
                         isActive
-                          ? "bg-white text-brand-orange"
+                          ? "bg-white text-brand-pink"
                           : "bg-white/20 text-white/50"
                       }`}
                     >

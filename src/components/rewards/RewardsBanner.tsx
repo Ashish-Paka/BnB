@@ -140,19 +140,20 @@ export default function RewardsBanner({ pendingOtpCode, onOtpProcessed, refreshT
             </h3>
             {customer ? (
               <>
-                <div className="flex items-center gap-2 mb-1">
-                  <p className="text-white/80 text-xs font-medium truncate">
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <p className="text-white/80 text-sm sm:text-base font-medium truncate">
                     {customer.names[0]}
                   </p>
                   <button
                     onClick={handleLogout}
-                    className="text-white/60 hover:text-white transition-colors shrink-0"
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/80 hover:bg-red-600 text-white text-xs font-bold transition-all shrink-0"
                     title="Log out"
                   >
                     <LogOut className="w-3 h-3" />
+                    Logout
                   </button>
                 </div>
-                <p className="text-white/90 text-sm font-medium mb-3">
+                <p className="text-white/90 text-sm sm:text-base font-medium mb-3">
                   {customer.visit_count}/{REWARD_THRESHOLD} visits
                   {availableRewards > 0 && (
                     <span className="ml-2 bg-white/30 px-2 py-0.5 rounded-full text-xs font-bold">
@@ -164,38 +165,38 @@ export default function RewardsBanner({ pendingOtpCode, onOtpProcessed, refreshT
                   {availableRewards > 0 && (
                     <button
                       onClick={() => setShowRedeem(true)}
-                      className="inline-flex items-center gap-2 bg-white text-green-600 px-4 py-2 rounded-full font-bold text-sm shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 active:scale-95 ring-2 ring-green-300/50"
+                      className="inline-flex items-center gap-2 bg-white text-green-600 px-5 py-2.5 rounded-full font-bold text-sm sm:text-base shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 active:scale-95 ring-2 ring-green-300/50"
                     >
-                      <Gift className="w-4 h-4" />
+                      <Gift className="w-4 h-4 sm:w-5 sm:h-5" />
                       Redeem Free Drink
                     </button>
                   )}
                   <button
                     onClick={() => setShowVerify(true)}
-                    className="inline-flex items-center gap-2 bg-white text-amber-600 px-4 py-2 rounded-full font-bold text-sm shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 active:scale-95"
+                    className="inline-flex items-center gap-2 bg-white text-amber-600 px-5 py-2.5 rounded-full font-bold text-sm sm:text-base shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 active:scale-95"
                   >
-                    <Gift className="w-4 h-4" />
+                    <Gift className="w-4 h-4 sm:w-5 sm:h-5" />
                     Verify Visit
                   </button>
                   <button
                     onClick={() => setShowHistory(true)}
-                    className="inline-flex items-center gap-2 bg-white/20 text-white px-4 py-2 rounded-full font-bold text-sm backdrop-blur-sm hover:bg-white/30 transition-all active:scale-95"
+                    className="inline-flex items-center gap-2 bg-white/20 text-white px-5 py-2.5 rounded-full font-bold text-sm sm:text-base backdrop-blur-sm hover:bg-white/30 transition-all active:scale-95"
                   >
-                    <ClipboardList className="w-4 h-4" />
+                    <ClipboardList className="w-4 h-4 sm:w-5 sm:h-5" />
                     Orders
                   </button>
                 </div>
               </>
             ) : (
               <>
-                <p className="text-white/90 text-sm font-medium mb-3">
+                <p className="text-white/90 text-sm sm:text-base font-medium mb-3">
                   Earn a free drink every {REWARD_THRESHOLD} visits!
                 </p>
                 <button
                   onClick={() => setShowLogin(true)}
-                  className="inline-flex items-center gap-2 bg-white text-amber-600 px-4 py-2 rounded-full font-bold text-sm shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 active:scale-95"
+                  className="inline-flex items-center gap-2 bg-white text-amber-600 px-5 py-2.5 rounded-full font-bold text-sm sm:text-base shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 active:scale-95"
                 >
-                  <LogIn className="w-4 h-4" />
+                  <LogIn className="w-4 h-4 sm:w-5 sm:h-5" />
                   Log in to track
                 </button>
               </>

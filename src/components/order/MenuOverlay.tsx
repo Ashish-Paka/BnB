@@ -45,16 +45,13 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId, 
 
   const filteredMenu = menu.filter((item) => item.category === activeCategory);
 
+  // Always open modal so users can see full description + image
   const handleSelectItem = (item: MenuItem) => {
-    if (!item.options || item.options.length === 0) {
-      // No options, add directly
-      cart.addItem(item, {});
-      return;
-    }
-    // Set defaults for each option
     const defaults: Record<string, string> = {};
-    for (const opt of item.options) {
-      defaults[opt.name] = opt.choices[0]?.label || "";
+    if (item.options) {
+      for (const opt of item.options) {
+        defaults[opt.name] = opt.choices[0]?.label || "";
+      }
     }
     setSelectedOptions(defaults);
     setSelectedItem(item);
@@ -69,7 +66,7 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId, 
   };
 
   const handlePlaceOrder = async () => {
-    if (!customerName.trim()) return;
+    if (!customerName.trim() || !orderingEnabled) return;
     setPlacing(true);
     try {
       const order = await createOrder({
@@ -111,6 +108,19 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId, 
     return total;
   };
 
+  // Build option summary string with costs for card display
+  const optionSummary = (item: MenuItem) => {
+    if (!item.options || item.options.length === 0) return null;
+    return item.options.map((opt) => {
+      const extras = opt.choices.filter((c) => c.extra_cents > 0);
+      if (extras.length > 0) {
+        const maxExtra = Math.max(...extras.map((c) => c.extra_cents));
+        return `${opt.name} (+${formatPrice(maxExtra)})`;
+      }
+      return opt.name;
+    }).join(" · ");
+  };
+
   if (!open) return null;
 
   return (
@@ -126,7 +136,7 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId, 
           Menu
         </h2>
         <div className="flex items-center gap-3">
-          {orderingEnabled && cart.itemCount > 0 && (
+          {cart.itemCount > 0 && (
             <button
               onClick={() => { setShowCheckout(true); setOrderPlaced(false); }}
               className="relative flex items-center gap-2 bg-brand-olive text-white px-4 py-2 rounded-full font-bold text-sm shadow-lg"
@@ -164,7 +174,7 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId, 
         ))}
       </div>
 
-      {/* Menu items */}
+      {/* Menu items — redesigned vertical card layout */}
       <div className="px-4 pb-32">
         {loading ? (
           <div className="text-center py-12 text-stone-400">Loading menu...</div>
@@ -173,40 +183,47 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId, 
             {filteredMenu.map((item) => (
               <motion.div
                 key={item.id}
-                whileTap={orderingEnabled ? { scale: 0.98 } : undefined}
-                onClick={orderingEnabled ? () => handleSelectItem(item) : undefined}
-                className={`w-full text-left p-4 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200/50 dark:border-stone-700/50 shadow-sm transition-all flex items-center justify-between gap-4 ${orderingEnabled ? "cursor-pointer hover:shadow-md" : ""}`}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => handleSelectItem(item)}
+                className="w-full text-left p-4 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200/50 dark:border-stone-700/50 shadow-sm transition-all cursor-pointer hover:shadow-md flex flex-col gap-2"
               >
-                {item.has_image && (
-                  <img
-                    src={getMenuImageUrl(item.id)}
-                    alt=""
-                    className="w-16 h-16 rounded-xl object-cover shrink-0"
-                    loading="lazy"
-                  />
-                )}
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-bold text-stone-800 dark:text-stone-200">
+                {/* Top row: image + name */}
+                <div className="flex items-center gap-3">
+                  {item.has_image && (
+                    <img
+                      src={getMenuImageUrl(item.id)}
+                      alt=""
+                      className="w-14 h-14 md:w-16 md:h-16 rounded-xl object-cover shrink-0"
+                      loading="lazy"
+                    />
+                  )}
+                  <h4 className="font-bold text-stone-800 dark:text-stone-200 text-base">
                     {item.name}
                   </h4>
-                  <p className="text-sm text-stone-500 dark:text-stone-400">
+                </div>
+
+                {/* Description — full width, clamped */}
+                {item.description && (
+                  <p className="text-sm text-stone-500 dark:text-stone-400 leading-relaxed">
                     {item.description}
                   </p>
-                  {item.options && item.options.length > 0 && (
-                    <p className="text-xs text-stone-400 mt-1">
-                      {item.options.map((o) => o.name).join(" · ")}
-                    </p>
-                  )}
-                </div>
-                <div className="flex items-center gap-3 shrink-0">
+                )}
+
+                {/* Options with costs */}
+                {optionSummary(item) && (
+                  <p className="text-xs text-stone-400 dark:text-stone-500">
+                    {optionSummary(item)}
+                  </p>
+                )}
+
+                {/* Bottom row: price right, plus button */}
+                <div className="flex items-center justify-end gap-3 pt-1">
                   <span className="font-bold text-brand-olive text-lg">
                     {formatPrice(item.base_price_cents)}
                   </span>
-                  {orderingEnabled && (
-                    <div className="w-8 h-8 rounded-full bg-brand-olive/10 flex items-center justify-center text-brand-olive">
-                      <Plus className="w-5 h-5" />
-                    </div>
-                  )}
+                  <div className="w-8 h-8 rounded-full bg-brand-olive/10 flex items-center justify-center text-brand-olive">
+                    <Plus className="w-5 h-5" />
+                  </div>
                 </div>
               </motion.div>
             ))}
@@ -214,7 +231,7 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId, 
         )}
       </div>
 
-      {/* Options modal */}
+      {/* Item detail / Options modal */}
       <AnimatePresence>
         {selectedItem && (
           <motion.div
@@ -230,11 +247,28 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId, 
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full sm:max-w-lg bg-[var(--color-bg-light)] dark:bg-[var(--color-bg-dark)] rounded-t-3xl p-6 shadow-2xl"
+              className="w-full sm:max-w-lg bg-[var(--color-bg-light)] dark:bg-[var(--color-bg-dark)] rounded-t-3xl p-6 shadow-2xl max-h-[85dvh] overflow-y-auto"
             >
-              <h3 className="font-serif text-xl font-black text-stone-800 dark:text-stone-200 mb-4">
+              {/* Item image in modal */}
+              {selectedItem.has_image && (
+                <img
+                  src={getMenuImageUrl(selectedItem.id)}
+                  alt={selectedItem.name}
+                  className="w-full aspect-[16/9] rounded-2xl object-cover mb-4"
+                />
+              )}
+
+              <h3 className="font-serif text-xl font-black text-stone-800 dark:text-stone-200 mb-1">
                 {selectedItem.name}
               </h3>
+
+              {/* Full description — no line clamp */}
+              {selectedItem.description && (
+                <p className="text-sm text-stone-500 dark:text-stone-400 mb-4 leading-relaxed">
+                  {selectedItem.description}
+                </p>
+              )}
+
               {selectedItem.options?.map((opt) => (
                 <div key={opt.name} className="mb-4">
                   <label className="text-xs font-bold text-stone-500 uppercase tracking-wider mb-2 block">
@@ -410,16 +444,22 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId, 
                     </div>
                   </div>
 
+                  {!orderingEnabled && (
+                    <p className="text-sm text-red-500 dark:text-red-400 text-center mb-3 font-medium">
+                      In-store ordering is currently disabled
+                    </p>
+                  )}
+
                   <p className="text-xs text-stone-400 mb-4 text-center">
                     Payment will be collected at the counter
                   </p>
 
                   <button
                     onClick={handlePlaceOrder}
-                    disabled={placing || !customerName.trim() || cart.itemCount === 0}
+                    disabled={placing || !customerName.trim() || cart.itemCount === 0 || !orderingEnabled}
                     className="w-full py-3 rounded-xl bg-brand-olive text-white font-bold text-lg shadow-lg disabled:opacity-50"
                   >
-                    {placing ? "Placing Order..." : "Place Order"}
+                    {placing ? "Placing Order..." : !orderingEnabled ? "Ordering Disabled" : "Place Order"}
                   </button>
                 </>
               )}

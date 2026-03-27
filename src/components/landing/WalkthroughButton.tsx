@@ -15,7 +15,7 @@ export default function WalkthroughButton() {
       >
         <button
           onClick={() => setShowVideoModal(true)}
-          className="w-full sm:max-w-md inline-flex items-center justify-center gap-3 bg-gradient-to-r from-brand-pink to-[#E84E8A] text-white px-6 py-4 md:px-10 md:py-5 rounded-full font-bold text-lg md:text-xl shadow-xl hover:shadow-2xl transition-all hover:-translate-y-1 hover:scale-105 active:scale-95 border-2 border-white/20 dark:border-stone-700/50"
+          className="w-full sm:max-w-md inline-flex items-center justify-center gap-3 bg-gradient-to-r from-red-600 to-red-500 text-white px-6 py-4 md:px-10 md:py-5 rounded-full font-bold text-lg md:text-xl shadow-xl hover:shadow-2xl transition-all hover:-translate-y-1 hover:scale-105 active:scale-95 border-2 border-white/20 dark:border-stone-700/50"
         >
           <Play className="w-6 h-6 md:w-7 md:h-7 fill-current" />
           <span>Virtual Walkthrough</span>

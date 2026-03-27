@@ -14,10 +14,18 @@ export default async (req: Request, context: Context) => {
 
   const url = new URL(req.url);
   const status = url.searchParams.get("status");
+  const includeDeleted = url.searchParams.get("include_deleted") === "true";
 
   let orders = await getOrders();
+
+  // Filter by status if provided
   if (status) {
     orders = orders.filter((o) => o.status === status);
+  }
+
+  // By default, exclude soft-deleted orders unless explicitly requested
+  if (!includeDeleted) {
+    orders = orders.filter((o) => !o.deleted_at);
   }
 
   return Response.json(orders);

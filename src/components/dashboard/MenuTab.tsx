@@ -464,42 +464,48 @@ export default function MenuTab({ addToast }: Props) {
               {group.items.map((item) => (
                 <div
                   key={item.id}
-                  className={`p-4 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200/50 dark:border-stone-700/50 shadow-sm flex items-center justify-between ${
+                  className={`p-4 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200/50 dark:border-stone-700/50 shadow-sm flex flex-col gap-2 ${
                     item.is_available === false ? "opacity-50" : ""
                   }`}
                 >
-                  {item.has_image && (
-                    <img
-                      src={getMenuImageUrl(item.id)}
-                      alt=""
-                      className="w-12 h-12 rounded-xl object-cover shrink-0"
-                      loading="lazy"
-                    />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="font-bold text-stone-800 dark:text-stone-200">
-                        {item.name}
-                      </p>
-                      {item.is_available === false && (
-                        <span className="text-[10px] bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-full font-bold">
-                          Hidden
-                        </span>
-                      )}
+                  <div className="flex items-start gap-3">
+                    {item.has_image && (
+                      <img
+                        src={getMenuImageUrl(item.id)}
+                        alt=""
+                        className="w-14 h-14 rounded-xl object-cover shrink-0"
+                        loading="lazy"
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-bold text-stone-800 dark:text-stone-200">
+                          {item.name}
+                        </p>
+                        {item.is_available === false && (
+                          <span className="text-[10px] bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-full font-bold">
+                            Hidden
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <p className="text-sm text-stone-500 truncate">
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="font-bold text-brand-olive text-lg">
+                        {formatPrice(item.base_price_cents)}
+                      </span>
+                    </div>
+                  </div>
+                  {item.description && (
+                    <p className="text-sm text-stone-500 dark:text-stone-400 leading-relaxed">
                       {item.description}
                     </p>
-                    {item.options && item.options.length > 0 && (
-                      <p className="text-xs text-stone-400 mt-0.5">
-                        {item.options.map((o) => o.name).join(" · ")}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 ml-3">
-                    <span className="font-bold text-brand-olive text-lg">
-                      {formatPrice(item.base_price_cents)}
-                    </span>
+                  )}
+                  {item.options && item.options.length > 0 && (
+                    <p className="text-xs text-stone-400 mt-0.5">
+                      {item.options.map((o) => o.name).join(" · ")}
+                    </p>
+                  )}
+                  <div className="flex items-center justify-end gap-2">
                     <button
                       onClick={() => handleToggleAvailability(item)}
                       className="p-2 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-400 transition-colors"
@@ -588,14 +594,14 @@ export default function MenuTab({ addToast }: Props) {
                   <label className="text-xs font-bold text-stone-500 uppercase tracking-wider block mb-1">
                     Description
                   </label>
-                  <input
-                    type="text"
+                  <textarea
                     value={form.description}
                     onChange={(e) =>
                       setForm((f) => ({ ...f, description: e.target.value }))
                     }
-                    placeholder="Short description"
-                    className="w-full px-4 py-2 rounded-xl bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-800 dark:text-stone-200 outline-none focus:ring-2 focus:ring-brand-olive"
+                    placeholder="Description (can be multiple sentences)"
+                    rows={3}
+                    className="w-full px-4 py-2 rounded-xl bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-800 dark:text-stone-200 outline-none focus:ring-2 focus:ring-brand-olive resize-y"
                   />
                 </div>
 

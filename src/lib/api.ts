@@ -77,6 +77,26 @@ export const updateOrder = (id: string, updates: Partial<Order>) =>
     body: JSON.stringify({ id, ...updates }),
   });
 
+export const deleteOrder = (id: string) =>
+  request<Order>("orders-update", {
+    method: "PUT",
+    body: JSON.stringify({ id, deleted_at: new Date().toISOString() }),
+  });
+
+export const restoreOrder = (id: string) =>
+  request<Order>("orders-update", {
+    method: "PUT",
+    body: JSON.stringify({ id, deleted_at: null }),
+  });
+
+export const fetchAllOrders = () =>
+  request<Order[]>("orders-list?include_deleted=true");
+
+export const permanentlyDeleteOrder = (id: string) =>
+  request<{ success: boolean; id: string }>(`orders-delete?id=${id}`, {
+    method: "DELETE",
+  });
+
 export const fetchOrderStatus = (id: string) =>
   request<{ status: string; customer_name: string; customer_id: string | null }>(
     `orders-status?id=${id}`
