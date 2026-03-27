@@ -428,31 +428,29 @@ export default function DashboardPage() {
                         {deletedOrders.map((order) => (
                           <div
                             key={order.id}
-                            className="p-3 rounded-xl bg-red-50/50 dark:bg-red-900/10 border border-red-200/30 dark:border-red-800/30 flex items-center justify-between opacity-70"
+                            className="p-3 rounded-xl bg-red-50/50 dark:bg-red-900/10 border border-red-200/30 dark:border-red-800/30 flex flex-col gap-2 opacity-70"
                           >
-                            <div>
-                              <span className="font-medium text-sm text-stone-600 dark:text-stone-400">
-                                {order.customer_name}
-                              </span>
-                              <span className="text-xs text-stone-400 ml-2">
-                                {order.items.length} item{order.items.length !== 1 ? "s" : ""}
-                              </span>
-                              <span className="text-xs text-red-400 ml-2">
-                                Deleted {formatDate(order.deleted_at!)}
-                              </span>
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <p className="font-medium text-sm text-stone-600 dark:text-stone-400 break-words">
+                                  {order.customer_name}
+                                </p>
+                                <p className="text-xs text-stone-400">
+                                  {order.items.length} item{order.items.length !== 1 ? "s" : ""} · {order.is_free_reward ? "FREE" : formatPrice(order.total_cents)}
+                                </p>
+                                <p className="text-xs text-red-400">
+                                  Deleted {formatDate(order.deleted_at!)}
+                                </p>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-bold text-stone-600 dark:text-stone-400">
-                                {order.is_free_reward
-                                  ? "FREE"
-                                  : formatPrice(order.total_cents)}
-                              </span>
+                            <div className="flex items-center gap-2 flex-wrap">
                               <button
                                 onClick={() => setViewingOrder(order)}
-                                className="p-1.5 rounded-lg hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-400 transition-colors"
+                                className="flex items-center gap-1 px-3 py-1.5 rounded-lg hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-400 text-xs font-bold transition-colors"
                                 title="View"
                               >
                                 <Eye className="w-3.5 h-3.5" />
+                                View
                               </button>
                               <button
                                 onClick={() => handleRestoreOrder(order.id)}
