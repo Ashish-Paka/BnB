@@ -121,39 +121,29 @@ export default function RewardsBanner({ pendingOtpCode, onOtpProcessed, refreshT
           <Heart className="w-24 h-24" />
         </div>
 
-        <div className="relative z-10 flex items-center gap-5">
+        <div className="relative z-10 flex items-center gap-3 sm:gap-5">
           {/* Progress ring */}
           <div className="shrink-0">
-            <div className="bg-white/20 rounded-full p-2 backdrop-blur-sm">
+            <div className="bg-white/20 rounded-full p-1.5 sm:p-2 backdrop-blur-sm">
               <CircularProgress
                 current={customer?.visit_count ?? 0}
                 total={REWARD_THRESHOLD}
-                size={76}
+                size={68}
               />
             </div>
           </div>
 
           {/* Text content */}
           <div className="flex-1 min-w-0">
-            <h3 className="font-serif text-xl sm:text-2xl font-black mb-1 drop-shadow-md">
+            <h3 className="font-serif text-lg sm:text-xl md:text-2xl font-black mb-0.5 drop-shadow-md">
               Rewards
             </h3>
             {customer ? (
               <>
-                <div className="flex items-center justify-between gap-2 mb-1">
-                  <p className="text-white/80 text-sm sm:text-base font-medium truncate">
-                    {customer.names[0]}
-                  </p>
-                  <button
-                    onClick={handleLogout}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/80 hover:bg-red-600 text-white text-xs font-bold transition-all shrink-0"
-                    title="Log out"
-                  >
-                    <LogOut className="w-3 h-3" />
-                    Logout
-                  </button>
-                </div>
-                <p className="text-white/90 text-sm sm:text-base font-medium mb-3">
+                <p className="text-white text-sm sm:text-base font-semibold mb-0.5 break-words">
+                  {customer.names[0]}
+                </p>
+                <p className="text-white/90 text-xs sm:text-sm font-medium mb-2">
                   {customer.visit_count}/{REWARD_THRESHOLD} visits
                   {availableRewards > 0 && (
                     <span className="ml-2 bg-white/30 px-2 py-0.5 rounded-full text-xs font-bold">
@@ -165,25 +155,33 @@ export default function RewardsBanner({ pendingOtpCode, onOtpProcessed, refreshT
                   {availableRewards > 0 && (
                     <button
                       onClick={() => setShowRedeem(true)}
-                      className="inline-flex items-center gap-2 bg-white text-green-600 px-5 py-2.5 rounded-full font-bold text-sm sm:text-base shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 active:scale-95 ring-2 ring-green-300/50"
+                      className="inline-flex items-center gap-1.5 bg-white text-green-600 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full font-bold text-xs sm:text-sm shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 active:scale-95 ring-2 ring-green-300/50"
                     >
-                      <Gift className="w-4 h-4 sm:w-5 sm:h-5" />
-                      Redeem Free Drink
+                      <Gift className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      Redeem
                     </button>
                   )}
                   <button
                     onClick={() => setShowVerify(true)}
-                    className="inline-flex items-center gap-2 bg-white text-amber-600 px-5 py-2.5 rounded-full font-bold text-sm sm:text-base shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 active:scale-95"
+                    className="inline-flex items-center gap-1.5 bg-white text-amber-600 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full font-bold text-xs sm:text-sm shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 active:scale-95"
                   >
-                    <Gift className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <Gift className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     Verify Visit
                   </button>
                   <button
                     onClick={() => setShowHistory(true)}
-                    className="inline-flex items-center gap-2 bg-white/20 text-white px-5 py-2.5 rounded-full font-bold text-sm sm:text-base backdrop-blur-sm hover:bg-white/30 transition-all active:scale-95"
+                    className="inline-flex items-center gap-1.5 bg-white/20 text-white px-4 py-2 sm:px-5 sm:py-2.5 rounded-full font-bold text-xs sm:text-sm backdrop-blur-sm hover:bg-white/30 transition-all active:scale-95"
                   >
-                    <ClipboardList className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <ClipboardList className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     Orders
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 rounded-full bg-red-500/80 hover:bg-red-600 text-white text-xs sm:text-sm font-bold transition-all"
+                    title="Log out"
+                  >
+                    <LogOut className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                    Logout
                   </button>
                 </div>
               </>
