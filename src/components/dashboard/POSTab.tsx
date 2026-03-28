@@ -43,6 +43,13 @@ export default function POSTab({ onOrderCreated, addToast }: Props) {
       if (cats.length > 0) setActiveCategory(cats[0]);
     }).catch(() => {});
     fetchCustomers().then(setCustomers).catch(() => {});
+    const id = setInterval(() => {
+      fetchMenu().then((data) => {
+        setMenu(data);
+      }).catch(() => {});
+      fetchCustomers().then(setCustomers).catch(() => {});
+    }, 10_000);
+    return () => clearInterval(id);
   }, []);
 
   const filteredCustomers = useMemo(() => {

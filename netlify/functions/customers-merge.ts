@@ -57,10 +57,16 @@ export default async (req: Request, context: Context) => {
   primary.email = primary.email || secondary.email;
   primary.phone = primary.phone || secondary.phone;
 
-  // Merge counts
-  primary.visit_count += secondary.visit_count;
+  // Merge counts — handle visit_count overflow (cycle is 1-10)
+  const REWARD_THRESHOLD = 10;
+  const combinedVisits = primary.visit_count + secondary.visit_count;
+  const extraRewards = Math.floor(combinedVisits / REWARD_THRESHOLD);
+  const remainder = combinedVisits % REWARD_THRESHOLD;
+  primary.visit_count = (remainder === 0 && combinedVisits > 0)
+    ? REWARD_THRESHOLD
+    : remainder;
   primary.total_visits += secondary.total_visits;
-  primary.rewards_earned += secondary.rewards_earned;
+  primary.rewards_earned += secondary.rewards_earned + extraRewards;
   primary.rewards_redeemed += secondary.rewards_redeemed;
   primary.updated_at = new Date().toISOString();
 

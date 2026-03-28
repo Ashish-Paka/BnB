@@ -79,16 +79,17 @@ export default async (req: Request, context: Context) => {
   // --- Visit mode: record a visit ---
   const today = new Date().toISOString().split("T")[0];
   const visits = await getVisits();
-  const alreadyVerified = visits.some(
-    (v) => v.customer_id === customer_id && v.date === today
+  const alreadyUsedCode = visits.some(
+    (v) => v.customer_id === customer_id && v.totp_code_used === code
   );
-  if (alreadyVerified) {
+  if (alreadyUsedCode) {
     return Response.json({
       valid: true,
       visit_count: customer.visit_count,
+      total_visits: customer.total_visits,
       reward_earned: false,
       redeemed: false,
-      message: "Already verified today! Come back tomorrow.",
+      message: "You already used this code. Wait for a new one.",
     });
   }
 
@@ -102,14 +103,17 @@ export default async (req: Request, context: Context) => {
   });
   await setVisits(visits);
 
-  customer.visit_count += 1;
   customer.total_visits += 1;
+  if (customer.visit_count >= REWARD_THRESHOLD) {
+    customer.visit_count = 1; // was at 10, start new cycle
+  } else {
+    customer.visit_count += 1;
+  }
   customer.updated_at = new Date().toISOString();
 
   let rewardEarned = false;
   if (customer.visit_count >= REWARD_THRESHOLD) {
     customer.rewards_earned += 1;
-    customer.visit_count = 0; // Reset for next cycle
     rewardEarned = true;
   }
 
@@ -118,6 +122,7 @@ export default async (req: Request, context: Context) => {
   return Response.json({
     valid: true,
     visit_count: customer.visit_count,
+    total_visits: customer.total_visits,
     reward_earned: rewardEarned,
     redeemed: false,
     message: rewardEarned

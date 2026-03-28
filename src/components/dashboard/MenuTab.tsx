@@ -86,6 +86,13 @@ export default function MenuTab({ addToast }: Props) {
     fetchPublicConfig()
       .then((c) => setOrderingEnabled(c.in_store_ordering_enabled))
       .catch(() => {});
+    const id = setInterval(() => {
+      fetchMenu().then(setItems).catch(() => {});
+      fetchPublicConfig()
+        .then((c) => setOrderingEnabled(c.in_store_ordering_enabled))
+        .catch(() => {});
+    }, 10_000);
+    return () => clearInterval(id);
   }, []);
 
   const handleToggleOrdering = async () => {

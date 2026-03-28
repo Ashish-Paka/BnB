@@ -96,10 +96,10 @@ export default function CustomerPage() {
       const customer = JSON.parse(saved);
       // Re-fetch using whatever identifier we have
       const identifier: { phone?: string; email?: string; name?: string } = {};
-      if (customer.phone) identifier.phone = customer.phone;
-      else if (customer.email) identifier.email = customer.email;
       if (customer.names?.[0]) identifier.name = customer.names[0];
-      if (!identifier.phone && !identifier.email) return;
+      if (customer.phone) identifier.phone = customer.phone;
+      if (customer.email) identifier.email = customer.email;
+      if (!identifier.phone && !identifier.email && !identifier.name) return;
       const res = await checkRewards(identifier);
       if (res.customer) {
         localStorage.setItem("bnb_customer", JSON.stringify(res.customer));
@@ -118,6 +118,12 @@ export default function CustomerPage() {
     fetchPublicConfig()
       .then((c) => setOrderingEnabled(c.in_store_ordering_enabled))
       .catch(() => {});
+    const id = setInterval(() => {
+      fetchPublicConfig()
+        .then((c) => setOrderingEnabled(c.in_store_ordering_enabled))
+        .catch(() => {});
+    }, 10_000);
+    return () => clearInterval(id);
   }, []);
 
   useEffect(() => {

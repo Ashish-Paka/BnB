@@ -39,11 +39,17 @@ export default async (req: Request, context: Context) => {
     const customers = await getCustomers();
     const customer = customers.find((c) => c.id === orders[idx].customer_id);
     if (customer) {
-      customer.visit_count += 1;
       customer.total_visits += 1;
       if (customer.visit_count >= REWARD_THRESHOLD) {
-        customer.visit_count = 0;
-        customer.rewards_earned += 1;
+        customer.visit_count = 1; // was at 10, start new cycle
+      } else {
+        customer.visit_count += 1;
+      }
+      if (customer.visit_count >= REWARD_THRESHOLD) {
+        const available = customer.rewards_earned - customer.rewards_redeemed;
+        if (available < 1) {
+          customer.rewards_earned += 1;
+        }
       }
       customer.updated_at = new Date().toISOString();
       await setCustomers(customers);

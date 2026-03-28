@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "motion/react";
 import { Gift, LogIn, Heart, LogOut, ClipboardList } from "lucide-react";
 import CircularProgress from "../ui/CircularProgress";
@@ -8,6 +8,7 @@ import VerifyVisit from "./VerifyVisit";
 import OrderHistory from "./OrderHistory";
 import type { Customer } from "../../lib/types";
 import { REWARD_THRESHOLD } from "../../lib/constants";
+import { checkRewards } from "../../lib/api";
 
 interface Props {
   pendingOtpCode?: string | null;
@@ -32,14 +33,48 @@ export default function RewardsBanner({ pendingOtpCode, onOtpProcessed, refreshT
   const [otpCode, setOtpCode] = useState<string | null>(null);
   const otpProcessedRef = useRef(false);
 
+  // Fetch fresh customer data from server
+  const refreshCustomer = useCallback(async () => {
+    try {
+      const saved = localStorage.getItem("bnb_customer");
+      if (!saved) return;
+      const local: Customer = JSON.parse(saved);
+      const identifier: { phone?: string; email?: string; name?: string } = {};
+      if (local.names?.[0]) identifier.name = local.names[0];
+      if (local.phone) identifier.phone = local.phone;
+      if (local.email) identifier.email = local.email;
+      if (!identifier.phone && !identifier.email && !identifier.name) return;
+      const { customer: fresh } = await checkRewards(identifier);
+      if (fresh && fresh.id === local.id) {
+        setCustomer((prev) => {
+          if (prev && fresh.rewards_earned > prev.rewards_earned) {
+            setCelebration(true);
+            setTimeout(() => setCelebration(false), 3000);
+          }
+          return fresh;
+        });
+        localStorage.setItem("bnb_customer", JSON.stringify(fresh));
+      }
+    } catch {}
+  }, []);
+
+  // Auto-refresh on mount, window focus, and poll every 10s
+  useEffect(() => {
+    refreshCustomer();
+    const onFocus = () => refreshCustomer();
+    window.addEventListener("focus", onFocus);
+    const pollId = setInterval(refreshCustomer, 10_000);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      clearInterval(pollId);
+    };
+  }, [refreshCustomer]);
+
   // Re-read customer from localStorage when refreshTrigger changes
   useEffect(() => {
     if (refreshTrigger === undefined || refreshTrigger === 0) return;
-    try {
-      const saved = localStorage.getItem("bnb_customer");
-      if (saved) setCustomer(JSON.parse(saved));
-    } catch {}
-  }, [refreshTrigger]);
+    refreshCustomer();
+  }, [refreshTrigger, refreshCustomer]);
 
   // Auto-trigger on pending OTP code from URL
   useEffect(() => {
@@ -62,11 +97,12 @@ export default function RewardsBanner({ pendingOtpCode, onOtpProcessed, refreshT
     }
   };
 
-  const handleVerified = (visitCount: number, rewardEarned: boolean) => {
+  const handleVerified = (visitCount: number, rewardEarned: boolean, totalVisits?: number) => {
     if (customer) {
       const updated = {
         ...customer,
         visit_count: visitCount,
+        total_visits: totalVisits ?? customer.total_visits + 1,
         rewards_earned: rewardEarned
           ? customer.rewards_earned + 1
           : customer.rewards_earned,
@@ -145,21 +181,30 @@ export default function RewardsBanner({ pendingOtpCode, onOtpProcessed, refreshT
                 </p>
                 <p className="text-white/90 text-xs sm:text-sm font-medium mb-2">
                   {customer.visit_count}/{REWARD_THRESHOLD} visits
-                  {availableRewards > 0 && (
-                    <span className="ml-2 bg-white/30 px-2 py-0.5 rounded-full text-xs font-bold">
-                      {availableRewards} free drink{availableRewards > 1 ? "s" : ""}!
-                    </span>
-                  )}
                 </p>
+                {availableRewards > 0 && (
+                  <motion.div
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="mb-2 inline-flex items-center gap-2 bg-green-500/90 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-lg"
+                  >
+                    <span className="text-lg leading-none">&#9749;</span>
+                    <span className="text-white text-xs sm:text-sm font-black tracking-wide">
+                      {availableRewards} FREE DRINK{availableRewards > 1 ? "S" : ""} EARNED!
+                    </span>
+                  </motion.div>
+                )}
                 <div className="flex items-center gap-2 flex-wrap">
                   {availableRewards > 0 && (
-                    <button
+                    <motion.button
                       onClick={() => setShowRedeem(true)}
+                      animate={{ scale: [1, 1.05, 1] }}
+                      transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
                       className="inline-flex items-center gap-1.5 bg-white text-green-600 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full font-bold text-xs sm:text-sm shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 active:scale-95 ring-2 ring-green-300/50"
                     >
                       <Gift className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                      Redeem
-                    </button>
+                      Claim Reward
+                    </motion.button>
                   )}
                   <button
                     onClick={() => setShowVerify(true)}

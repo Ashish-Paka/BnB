@@ -28,19 +28,22 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId, 
   const categories = useMemo(() => deriveCategories(menu), [menu]);
 
   useEffect(() => {
-    if (open) {
-      setLoading(true);
-      fetchMenu()
-        .then((data) => {
-          setMenu(data);
-          const cats = deriveCategories(data);
-          if (cats.length > 0 && !cats.includes(activeCategory)) {
-            setActiveCategory(cats[0]);
-          }
-        })
-        .catch(() => {})
-        .finally(() => setLoading(false));
-    }
+    if (!open) return;
+    setLoading(true);
+    fetchMenu()
+      .then((data) => {
+        setMenu(data);
+        const cats = deriveCategories(data);
+        if (cats.length > 0 && !cats.includes(activeCategory)) {
+          setActiveCategory(cats[0]);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+    const id = setInterval(() => {
+      fetchMenu().then(setMenu).catch(() => {});
+    }, 10_000);
+    return () => clearInterval(id);
   }, [open]);
 
   const filteredMenu = menu.filter((item) => item.category === activeCategory);

@@ -76,26 +76,41 @@ export default function CustomersTab({ addToast }: Props) {
       .then(setCustomers)
       .catch(() => {})
       .finally(() => setLoading(false));
+    const id = setInterval(() => {
+      fetchCustomers().then(setCustomers).catch(() => {});
+    }, 10_000);
+    return () => clearInterval(id);
   }, []);
 
   useEffect(() => {
-    if (selectedId) {
-      setDetailLoading(true);
-      fetchCustomer(selectedId)
-        .then((d) => {
-          setDetail(d);
-          setEditNames(d.customer.names.join(", "));
-          setEditPhone(d.customer.phone || "");
-          setEditEmail(d.customer.email || "");
+    if (!selectedId) return;
+    setDetailLoading(true);
+    fetchCustomer(selectedId)
+      .then((d) => {
+        setDetail(d);
+        setEditNames(d.customer.names.join(", "));
+        setEditPhone(d.customer.phone || "");
+        setEditEmail(d.customer.email || "");
+        setEditVisitCount(d.customer.visit_count);
+        setEditTotalVisits(d.customer.total_visits);
+        setEditRewardsEarned(d.customer.rewards_earned);
+        setEditRewardsRedeemed(d.customer.rewards_redeemed);
+      })
+      .catch(() => addToast("Failed to load customer", "error"))
+      .finally(() => setDetailLoading(false));
+    const id = setInterval(() => {
+      fetchCustomer(selectedId).then((d) => {
+        setDetail(d);
+        if (!editing) {
           setEditVisitCount(d.customer.visit_count);
           setEditTotalVisits(d.customer.total_visits);
           setEditRewardsEarned(d.customer.rewards_earned);
           setEditRewardsRedeemed(d.customer.rewards_redeemed);
-        })
-        .catch(() => addToast("Failed to load customer", "error"))
-        .finally(() => setDetailLoading(false));
-    }
-  }, [selectedId]);
+        }
+      }).catch(() => {});
+    }, 10_000);
+    return () => clearInterval(id);
+  }, [selectedId, editing]);
 
   const filteredCustomers = useMemo(() => {
     if (!search.trim()) return customers;

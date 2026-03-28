@@ -32,6 +32,10 @@ export default function OrderHistory({ customerId }: Props) {
       .then(setOrders)
       .catch(() => {})
       .finally(() => setLoading(false));
+    const id = setInterval(() => {
+      fetchOrderHistory(customerId).then(setOrders).catch(() => {});
+    }, 10_000);
+    return () => clearInterval(id);
   }, [customerId]);
 
   const formatPrice = (cents: number) =>

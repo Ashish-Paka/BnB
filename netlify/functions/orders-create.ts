@@ -47,10 +47,13 @@ export default async (req: Request, context: Context) => {
   if (body.created_by === "owner" && customerId) {
     const customer = customers.find((c) => c.id === customerId);
     if (customer) {
-      customer.visit_count += 1;
       customer.total_visits += 1;
       if (customer.visit_count >= REWARD_THRESHOLD) {
-        customer.visit_count = 0;
+        customer.visit_count = 1; // was at 10, start new cycle
+      } else {
+        customer.visit_count += 1;
+      }
+      if (customer.visit_count >= REWARD_THRESHOLD) {
         customer.rewards_earned += 1;
       }
       // Handle free drink redemption

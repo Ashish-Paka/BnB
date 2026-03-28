@@ -160,6 +160,7 @@ export const verifyTotp = (code: string, customerId: string, redeem?: boolean) =
   request<{
     valid: boolean;
     visit_count: number;
+    total_visits?: number;
     reward_earned: boolean;
     redeemed: boolean;
     rewards_remaining?: number;

@@ -4,7 +4,7 @@ import { verifyTotp } from "../../lib/api";
 
 interface Props {
   customerId: string;
-  onVerified: (visitCount: number, rewardEarned: boolean) => void;
+  onVerified: (visitCount: number, rewardEarned: boolean, totalVisits?: number) => void;
   onRedeemed?: (rewardsRemaining: number) => void;
   initialCode?: string;
   mode?: "visit" | "redeem";
@@ -171,7 +171,7 @@ export default function VerifyVisit({ customerId, onVerified, onRedeemed, initia
         if (res.redeemed && onRedeemed) {
           onRedeemed(res.rewards_remaining ?? 0);
         } else if (res.visit_count !== undefined) {
-          onVerified(res.visit_count, res.reward_earned);
+          onVerified(res.visit_count, res.reward_earned, res.total_visits);
         }
       }
     } catch {
