@@ -101,11 +101,18 @@ export default async (req: Request, context: Context) => {
     await setMenu(menu);
   }
 
-  // If authenticated owner, return all items; otherwise only available
+  // Sort by sort_order
+  menu.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+
+  const url = new URL(req.url);
+  const includeDeleted = url.searchParams.get("include_deleted") === "true";
+
+  // If authenticated owner, return all non-deleted items (or all if include_deleted)
   const headers = Object.fromEntries(req.headers.entries());
   if (requireOwner(headers)) {
-    return Response.json(menu);
+    if (includeDeleted) return Response.json(menu);
+    return Response.json(menu.filter((item) => !item.deleted_at));
   }
-  const available = menu.filter((item) => item.is_available);
+  const available = menu.filter((item) => item.is_available && !item.deleted_at);
   return Response.json(available);
 };

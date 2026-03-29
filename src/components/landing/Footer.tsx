@@ -22,7 +22,7 @@ export default function Footer() {
         rel="noopener noreferrer"
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
-        className="flex items-center justify-between w-full mb-10 p-3 md:p-4 bg-white/80 dark:bg-stone-900/80 backdrop-blur-md rounded-2xl shadow-sm border border-stone-200/50 dark:border-stone-700/50 hover:shadow-md transition-all group"
+        className="flex items-center justify-between w-full mb-10 p-3 md:p-4 bg-white/80 dark:bg-stone-900/80 backdrop-blur-md rounded-2xl shadow-sm border border-stone-300 dark:border-stone-700 hover:shadow-md transition-all group"
       >
         <div className="flex items-center gap-3 md:gap-4 overflow-hidden min-w-0">
           <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-brand-olive/10 dark:bg-brand-olive/20 flex items-center justify-center text-brand-olive shrink-0">
@@ -45,14 +45,23 @@ export default function Footer() {
 
       {/* Owner Details */}
       <div className="flex flex-col items-center justify-center gap-5 md:gap-8 p-5 md:p-10 border-[3px] border-brand-orange/40 dark:border-brand-orange/20 rounded-3xl md:rounded-[2.5rem] bg-white/40 dark:bg-stone-900/40 backdrop-blur-sm w-full mx-auto shadow-lg hover:border-brand-orange/80 transition-colors">
-        <div className="flex items-center justify-center gap-2 sm:gap-3 md:gap-4 text-stone-600 dark:text-stone-300 text-xs sm:text-sm md:text-lg uppercase tracking-[0.15em] sm:tracking-[0.2em] font-black flex-wrap">
-          <span>John</span>
-          <span className="text-brand-orange">|</span>
-          <span>Charity</span>
-          <span className="text-brand-orange">|</span>
-          <span>Bru</span>
-          <span>—</span>
-          <span className="text-brand-orange">Owner</span>
+        <div className="flex flex-col items-center gap-1.5 sm:gap-2">
+          {/* OWNER label with tapering lines */}
+          <div className="flex items-center gap-3 sm:gap-4 w-full justify-center">
+            <div className="h-px flex-1 max-w-12 sm:max-w-20 bg-gradient-to-l from-brand-orange/60 to-transparent" />
+            <span className="text-brand-orange text-[clamp(1.25rem,4vw,2rem)] font-black uppercase tracking-[0.3em]">
+              Owner
+            </span>
+            <div className="h-px flex-1 max-w-12 sm:max-w-20 bg-gradient-to-r from-brand-orange/60 to-transparent" />
+          </div>
+          {/* Names */}
+          <div className="flex items-center justify-center gap-2 sm:gap-3 md:gap-4 text-stone-600 dark:text-stone-300 text-xs sm:text-sm md:text-lg uppercase tracking-[0.15em] sm:tracking-[0.2em] font-black">
+            <span>John</span>
+            <span className="text-brand-orange">|</span>
+            <span>Charity</span>
+            <span className="text-brand-orange">|</span>
+            <span>Bru</span>
+          </div>
         </div>
         <div className="flex flex-col items-center gap-4 w-full">
           <div className="flex flex-wrap items-center gap-3 md:gap-6 w-full justify-center">
@@ -115,7 +124,7 @@ export default function Footer() {
 
       {/* QR Code */}
       <div className="mt-10 flex justify-center w-full">
-        <div className="p-4 bg-white dark:bg-stone-800 rounded-3xl shadow-xl border border-stone-200/50 dark:border-stone-700/50 hover:scale-105 transition-transform duration-300 flex flex-col items-center">
+        <div className="p-4 bg-white dark:bg-stone-800 rounded-3xl shadow-xl border border-stone-300 dark:border-stone-700 hover:scale-105 transition-transform duration-300 flex flex-col items-center">
           <img
             src="/qr.jpeg"
             alt="Bones & Bru QR Code"

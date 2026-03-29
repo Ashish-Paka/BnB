@@ -11,7 +11,7 @@ export default function ThemeToggle({ isDarkMode, setIsDarkMode }: Props) {
     <motion.button
       whileTap={{ scale: 0.9 }}
       onClick={() => setIsDarkMode(!isDarkMode)}
-      className="absolute top-4 right-4 md:top-8 md:right-8 p-3 md:p-4 rounded-full bg-white/80 dark:bg-stone-900/80 backdrop-blur-md shadow-sm border border-stone-200/50 dark:border-stone-700/50 z-50 text-stone-600 dark:text-stone-400 hover:shadow-md transition-all"
+      className="absolute top-4 right-4 md:top-8 md:right-8 p-3 md:p-4 rounded-full bg-white/80 dark:bg-stone-900/80 backdrop-blur-md shadow-sm border border-stone-300 dark:border-stone-700 z-50 text-stone-600 dark:text-stone-400 hover:shadow-md transition-all"
     >
       <AnimatePresence mode="wait">
         {isDarkMode ? (

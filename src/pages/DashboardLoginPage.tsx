@@ -89,7 +89,7 @@ export default function DashboardLoginPage({ onLogin }: Props) {
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-sm"
       >
-        <div className="bg-white/80 dark:bg-stone-900/80 backdrop-blur-md rounded-3xl shadow-xl border border-stone-200/50 dark:border-stone-700/50 p-8">
+        <div className="bg-white/80 dark:bg-stone-900/80 backdrop-blur-md rounded-3xl shadow-xl border border-stone-300 dark:border-stone-700 p-8">
           <div className="flex justify-center mb-6">
             <div className="w-14 h-14 rounded-full bg-brand-orange/10 flex items-center justify-center">
               <Lock className="w-7 h-7 text-brand-orange" />

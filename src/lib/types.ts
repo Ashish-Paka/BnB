@@ -9,10 +9,17 @@ export interface MenuItem {
   description: string;
   base_price_cents: number;
   category: string;
+  subcategory?: string;
   is_available: boolean;
   sort_order: number;
   options?: MenuItemOption[];
   has_image?: boolean;
+  deleted_at?: string | null;
+}
+
+export interface MenuOrdering {
+  category_order: string[];
+  subcategory_order: Record<string, string[]>;
 }
 
 export interface CartItem {

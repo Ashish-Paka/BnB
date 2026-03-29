@@ -214,7 +214,7 @@ export default function POSTab({ onOrderCreated, addToast }: Props) {
               key={item.id}
               whileTap={{ scale: 0.97 }}
               onClick={() => handleSelectItem(item)}
-              className="p-3 rounded-xl bg-white dark:bg-stone-900 border border-stone-200/50 dark:border-stone-700/50 text-left hover:shadow-md transition-all overflow-hidden"
+              className="p-3 rounded-xl bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 text-left hover:shadow-md transition-all overflow-hidden"
             >
               {item.has_image && (
                 <img
@@ -243,7 +243,7 @@ export default function POSTab({ onOrderCreated, addToast }: Props) {
       {/* Right: Cart + Customer */}
       <div className="md:col-span-2 flex flex-col gap-3">
         {/* Customer lookup */}
-        <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/50 dark:border-stone-700/50 p-4">
+        <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-300 dark:border-stone-700 p-4">
           <h3 className="font-bold text-xs text-stone-500 uppercase tracking-wider mb-2">
             Customer
           </h3>
@@ -327,7 +327,7 @@ export default function POSTab({ onOrderCreated, addToast }: Props) {
         </div>
 
         {/* Cart */}
-        <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/50 dark:border-stone-700/50 p-4 flex-1">
+        <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-300 dark:border-stone-700 p-4 flex-1">
           <h3 className="font-bold text-xs text-stone-500 uppercase tracking-wider mb-3">
             Cart
           </h3>

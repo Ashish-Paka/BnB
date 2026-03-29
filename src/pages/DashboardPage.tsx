@@ -14,6 +14,8 @@ import {
   X,
   ChevronDown,
   ChevronUp,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { verifyAuth, fetchOrders, updateOrder, deleteOrder, restoreOrder, fetchAllOrders, permanentlyDeleteOrder } from "../lib/api";
 import type { Order } from "../lib/types";
@@ -33,6 +35,42 @@ export default function DashboardPage() {
   const [checking, setChecking] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>("otp");
   const { toasts, addToast, dismissToast } = useToasts();
+
+  // Dark mode
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("theme");
+      if (stored) return stored === "dark";
+      return window.matchMedia("(prefers-color-scheme: dark)").matches;
+    }
+    return false;
+  });
+  const isFirstRenderDark = useRef(true);
+
+  useEffect(() => {
+    if (isFirstRenderDark.current) {
+      isFirstRenderDark.current = false;
+      if (isDarkMode) {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
+      localStorage.setItem("theme", isDarkMode ? "dark" : "light");
+      return;
+    }
+    document.documentElement.classList.add("theme-transitioning");
+    if (isDarkMode) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+    const timeout = setTimeout(() => {
+      document.documentElement.classList.remove("theme-transitioning");
+    }, 400);
+    return () => clearTimeout(timeout);
+  }, [isDarkMode]);
 
   // Orders data
   const [orders, setOrders] = useState<Order[]>([]);
@@ -248,7 +286,7 @@ export default function DashboardPage() {
     <motion.div
       key={order.id}
       layout
-      className={`p-4 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200/50 dark:border-stone-700/50 shadow-sm ${!isActive ? "opacity-80" : ""}`}
+      className={`p-4 rounded-2xl bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 shadow-sm ${!isActive ? "opacity-80" : ""}`}
     >
       <div className="flex items-start justify-between mb-3">
         <div>
@@ -337,17 +375,26 @@ export default function DashboardPage() {
       <Toast toasts={toasts} onDismiss={dismissToast} />
 
       {/* Header */}
-      <div className="sticky top-0 z-50 bg-[var(--color-bg-light)]/95 dark:bg-[var(--color-bg-dark)]/95 backdrop-blur-md border-b border-stone-200/50 dark:border-stone-700/50">
+      <div className="sticky top-0 z-50 bg-[var(--color-bg-light)]/95 dark:bg-[var(--color-bg-dark)]/95 backdrop-blur-md border-b border-stone-300 dark:border-stone-700">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
           <h1 className="font-serif text-xl font-black text-stone-800 dark:text-stone-200">
             Bones & Bru
           </h1>
-          <button
-            onClick={handleLogout}
-            className="p-2 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-500 transition-colors"
-          >
-            <LogOut className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className="p-2 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-500 transition-colors"
+              title={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+            >
+              {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
+            <button
+              onClick={handleLogout}
+              className="p-2 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-500 transition-colors"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Tabs */}
@@ -514,7 +561,7 @@ export default function DashboardPage() {
               exit={{ y: "100%", opacity: 0 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full sm:max-w-lg max-h-[90dvh] overflow-y-auto bg-[var(--color-bg-light)] dark:bg-[var(--color-bg-dark)] rounded-t-3xl sm:rounded-3xl shadow-2xl border border-stone-200/50 dark:border-stone-700/50"
+              className="w-full sm:max-w-lg max-h-[90dvh] overflow-y-auto bg-[var(--color-bg-light)] dark:bg-[var(--color-bg-dark)] rounded-t-3xl sm:rounded-3xl shadow-2xl border border-stone-300 dark:border-stone-700"
             >
               <div className="flex items-center justify-between px-6 pt-5 pb-2">
                 <h2 className="font-serif text-xl font-bold text-stone-800 dark:text-stone-200">
@@ -557,7 +604,7 @@ export default function DashboardPage() {
                 <div className="space-y-2">
                   <h4 className="text-xs font-bold text-stone-500 uppercase tracking-wider">Items</h4>
                   {viewingOrder.items.map((item, i) => (
-                    <div key={i} className="flex justify-between p-3 bg-white dark:bg-stone-900 rounded-xl border border-stone-200/50 dark:border-stone-700/50">
+                    <div key={i} className="flex justify-between p-3 bg-white dark:bg-stone-900 rounded-xl border border-stone-300 dark:border-stone-700">
                       <div>
                         <p className="font-bold text-stone-800 dark:text-stone-200 text-sm">
                           {item.quantity}x {item.item_name}

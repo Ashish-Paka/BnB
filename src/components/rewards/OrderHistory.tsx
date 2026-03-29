@@ -79,7 +79,7 @@ export default function OrderHistory({ customerId }: Props) {
         return (
           <div
             key={order.id}
-            className="p-4 rounded-xl bg-white dark:bg-stone-900 border border-stone-200/50 dark:border-stone-700/50"
+            className="p-4 rounded-xl bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700"
           >
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-1.5">

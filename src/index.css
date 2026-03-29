@@ -44,16 +44,20 @@
     color: var(--text-color);
     @apply font-sans;
   }
-  /* Delay transitions until after initial paint to prevent flash */
-  body.transitions-ready {
-    @apply transition-colors duration-500;
-  }
+}
+
+/* Applied during theme toggle to transition ALL elements uniformly, preventing flicker */
+html.theme-transitioning,
+html.theme-transitioning *,
+html.theme-transitioning *::before,
+html.theme-transitioning *::after {
+  transition: background-color 400ms ease, color 400ms ease, border-color 400ms ease, fill 400ms ease, stroke 400ms ease, box-shadow 400ms ease, opacity 400ms ease !important;
 }
 
 .glass-card {
-  @apply bg-white/80 dark:bg-stone-900/80 backdrop-blur-md border border-stone-200/50 dark:border-stone-800/50 shadow-sm;
+  @apply bg-white/80 dark:bg-stone-900/80 backdrop-blur-md border border-stone-300 dark:border-stone-700 shadow-sm;
 }
 
 .action-card {
-  @apply bg-white dark:bg-stone-900 border border-stone-100 dark:border-stone-800 shadow-sm hover:shadow-md transition-all duration-200;
+  @apply bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 shadow-sm hover:shadow-md transition-all duration-200;
 }

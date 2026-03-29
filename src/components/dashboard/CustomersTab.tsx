@@ -281,7 +281,7 @@ export default function CustomersTab({ addToast }: Props) {
         </button>
 
         {/* Customer info card */}
-        <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200/50 dark:border-stone-700/50 shadow-sm p-5 mb-4">
+        <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-300 dark:border-stone-700 shadow-sm p-5 mb-4">
           <div className="flex items-start justify-between mb-4">
             <div className="flex-1">
               {editing ? (
@@ -607,7 +607,7 @@ export default function CustomersTab({ addToast }: Props) {
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden"
           >
-            <div className="mb-3 p-4 rounded-xl bg-white dark:bg-stone-900 border border-stone-200/50 dark:border-stone-700/50 shadow-sm">
+            <div className="mb-3 p-4 rounded-xl bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 shadow-sm">
               <h4 className="text-sm font-bold text-stone-700 dark:text-stone-300 mb-3">New Customer</h4>
               <div className="space-y-2">
                 <input
@@ -749,7 +749,7 @@ export default function CustomersTab({ addToast }: Props) {
                 className={`w-full text-left p-4 rounded-2xl bg-white dark:bg-stone-900 border shadow-sm transition-all ${
                   isSelected
                     ? "border-brand-orange ring-2 ring-brand-orange/30"
-                    : "border-stone-200/50 dark:border-stone-700/50 hover:shadow-md"
+                    : "border-stone-300 dark:border-stone-700 hover:shadow-md"
                 }`}
               >
                 <div className="flex items-center justify-between">

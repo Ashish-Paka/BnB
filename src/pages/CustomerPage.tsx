@@ -151,7 +151,23 @@ export default function CustomerPage() {
     preloadImages();
   }, []);
 
+  const isFirstRender = useRef(true);
+
   useEffect(() => {
+    if (isFirstRender.current) {
+      // On first render, just sync the class without transition (HTML script already set it)
+      isFirstRender.current = false;
+      if (isDarkMode) {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
+      localStorage.setItem("theme", isDarkMode ? "dark" : "light");
+      return;
+    }
+
+    // On theme toggle: add transition class so ALL elements animate uniformly
+    document.documentElement.classList.add("theme-transitioning");
     if (isDarkMode) {
       document.documentElement.classList.add("dark");
       localStorage.setItem("theme", "dark");
@@ -159,18 +175,15 @@ export default function CustomerPage() {
       document.documentElement.classList.remove("dark");
       localStorage.setItem("theme", "light");
     }
+    const timeout = setTimeout(() => {
+      document.documentElement.classList.remove("theme-transitioning");
+    }, 400);
+    return () => clearTimeout(timeout);
   }, [isDarkMode]);
-
-  // Enable transitions after initial paint to prevent flash
-  useEffect(() => {
-    requestAnimationFrame(() => {
-      document.body.classList.add("transitions-ready");
-    });
-  }, []);
 
   return (
     <>
-      <div className="min-h-screen flex flex-col items-center relative overflow-hidden bg-[var(--color-bg-light)] dark:bg-[var(--color-bg-dark)] transition-colors duration-500">
+      <div className="min-h-screen flex flex-col items-center relative overflow-hidden bg-[var(--bg-color)]">
         <HeroSection />
         <FloatingDecorations />
         <ThemeToggle isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />

@@ -73,7 +73,7 @@ export default function OTPTab() {
       {otpData ? (
         <>
           {/* Code display */}
-          <div className="bg-white dark:bg-stone-900 rounded-3xl shadow-xl border border-stone-200/50 dark:border-stone-700/50 px-8 py-6 md:px-12 md:py-8 mb-4">
+          <div className="bg-white dark:bg-stone-900 rounded-3xl shadow-xl border border-stone-300 dark:border-stone-700 px-8 py-6 md:px-12 md:py-8 mb-4">
             <p className="text-5xl md:text-7xl font-mono font-black tracking-[0.3em] text-brand-orange text-center select-all">
               {otpData.code}
             </p>
@@ -97,14 +97,14 @@ export default function OTPTab() {
 
           {/* QR Code */}
           {qrDataUrl && (
-            <div className="mb-2 bg-white rounded-2xl p-3 shadow-md border border-stone-200/50 dark:border-stone-700/50">
+            <div className="mb-2 bg-white rounded-2xl p-3 shadow-md border border-stone-300 dark:border-stone-700">
               <img src={qrDataUrl} alt="Scan to verify visit" className="w-44 h-44" />
             </div>
           )}
           <p className="text-stone-400 text-xs mb-8 text-center">Customers scan this QR code to auto-verify</p>
 
           {/* Instructions */}
-          <div className="max-w-sm bg-stone-50 dark:bg-stone-900 rounded-2xl border border-stone-200/50 dark:border-stone-700/50 p-5">
+          <div className="max-w-sm bg-stone-50 dark:bg-stone-900 rounded-2xl border border-stone-300 dark:border-stone-700 p-5">
             <h3 className="font-bold text-sm text-stone-700 dark:text-stone-300 mb-2">
               How it works
             </h3>

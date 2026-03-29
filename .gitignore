@@ -10,8 +10,9 @@ coverage/
 # Local Netlify folder
 .netlify
 
-# Playwright MCP
+# Playwright
 .playwright-mcp/
+test-results/
 
 # Claude Code
 .claude/settings.local.json

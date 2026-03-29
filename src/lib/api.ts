@@ -1,4 +1,4 @@
-import type { MenuItem, Order, Customer, Visit } from "./types";
+import type { MenuItem, MenuOrdering, Order, Customer, Visit } from "./types";
 
 const API_BASE = "/.netlify/functions";
 
@@ -56,6 +56,36 @@ export const manageMenuItem = (
   method: "POST" | "PUT" | "DELETE",
   item: Partial<MenuItem>
 ) => request<MenuItem>("menu-manage", { method, body: JSON.stringify(item) });
+
+export const fetchMenuIncludeDeleted = () =>
+  request<MenuItem[]>("menu-list?include_deleted=true");
+
+export const restoreMenuItem = (id: string) =>
+  request<MenuItem>("menu-manage", {
+    method: "PUT",
+    body: JSON.stringify({ id, deleted_at: null }),
+  });
+
+export const permanentlyDeleteMenuItem = (id: string) =>
+  request<MenuItem>("menu-manage?permanent=true", {
+    method: "DELETE",
+    body: JSON.stringify({ id }),
+  });
+
+export const reorderMenuItems = (items: { id: string; sort_order: number }[]) =>
+  request<MenuItem[]>("menu-reorder", {
+    method: "PUT",
+    body: JSON.stringify({ items }),
+  });
+
+export const fetchMenuOrdering = () =>
+  request<MenuOrdering>("menu-ordering");
+
+export const updateMenuOrdering = (ordering: MenuOrdering) =>
+  request<MenuOrdering>("menu-ordering", {
+    method: "PUT",
+    body: JSON.stringify(ordering),
+  });
 
 // Orders
 export const fetchOrders = (status?: string) =>

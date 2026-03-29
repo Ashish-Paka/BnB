@@ -51,7 +51,7 @@ export default function SocialGrid() {
           transition={{ delay: 0.3 + index * 0.1 }}
           whileHover={{ scale: 1.05, y: -4 }}
           whileTap={{ scale: 0.95 }}
-          className="flex flex-col items-center justify-center p-3 sm:p-5 md:p-6 bg-white/80 dark:bg-stone-900/80 backdrop-blur-md rounded-2xl md:rounded-[2rem] shadow-sm border border-stone-200/50 dark:border-stone-700/50 hover:shadow-lg transition-all group"
+          className="flex flex-col items-center justify-center p-3 sm:p-5 md:p-6 bg-white/80 dark:bg-stone-900/80 backdrop-blur-md rounded-2xl md:rounded-[2rem] shadow-sm border border-stone-300 dark:border-stone-700 hover:shadow-lg transition-all group"
         >
           <div
             className={`w-14 h-14 sm:w-16 sm:h-16 md:w-18 md:h-18 rounded-full ${social.color} text-white flex items-center justify-center mb-2 sm:mb-3 md:mb-4 shadow-md group-hover:scale-110 transition-transform duration-300 overflow-hidden`}

@@ -302,7 +302,7 @@ export default function SettingsTab({ addToast }: Props) {
     <div className="space-y-6 max-w-md mx-auto">
       {/* Main Password — owner and admin */}
       {(isOwner || isAdminUser) && (
-        <div className="p-5 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200/50 dark:border-stone-700/50 shadow-sm">
+        <div className="p-5 rounded-2xl bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 shadow-sm">
           <h3 className="font-bold text-stone-800 dark:text-stone-200 mb-4">Main Password</h3>
           <form onSubmit={handleChangePassword} className="flex flex-col gap-3">
             <div className="relative">
@@ -327,7 +327,7 @@ export default function SettingsTab({ addToast }: Props) {
 
       {/* Admin Password — admin only */}
       {isAdminUser && (
-        <div className="p-5 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200/50 dark:border-stone-700/50 shadow-sm">
+        <div className="p-5 rounded-2xl bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 shadow-sm">
           <h3 className="font-bold text-stone-800 dark:text-stone-200 mb-1">Admin Password</h3>
           <p className="text-xs text-stone-400 mb-4">Change your admin password</p>
           <form onSubmit={handleChangeAdminPassword} className="flex flex-col gap-3">
@@ -353,7 +353,7 @@ export default function SettingsTab({ addToast }: Props) {
 
       {/* Google Accounts */}
       {GOOGLE_CLIENT_ID && (
-        <div className="p-5 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200/50 dark:border-stone-700/50 shadow-sm">
+        <div className="p-5 rounded-2xl bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 shadow-sm">
           <h3 className="font-bold text-stone-800 dark:text-stone-200 mb-4">
             Google Accounts
             <span className="text-xs font-normal text-stone-400 ml-2">({googleAccounts.length}/{isAdminUser ? 4 : 3})</span>
@@ -370,7 +370,7 @@ export default function SettingsTab({ addToast }: Props) {
                 <div className="flex flex-col gap-2 mb-4">
                   {googleAccounts.map((account) => (
                     <div key={account.email}>
-                      <div className="flex items-center justify-between gap-2 p-3 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-200/50 dark:border-stone-700/50">
+                      <div className="flex items-center justify-between gap-2 p-3 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-300 dark:border-stone-700">
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-stone-800 dark:text-stone-200 truncate">
                             {account.email}
@@ -465,7 +465,7 @@ export default function SettingsTab({ addToast }: Props) {
 
       {/* Backup — owner/primary/admin only */}
       {(isOwner || isAdminUser) && (
-        <div className="p-5 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200/50 dark:border-stone-700/50 shadow-sm">
+        <div className="p-5 rounded-2xl bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 shadow-sm">
           <h3 className="font-bold text-stone-800 dark:text-stone-200 mb-1">Data Backup</h3>
           <p className="text-xs text-stone-400 mb-4">Menu, images, customers, orders, visits, config, and account info.</p>
 

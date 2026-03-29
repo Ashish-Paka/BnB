@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, Plus, Minus, ShoppingBag, User } from "lucide-react";
-import { fetchMenu, createOrder, getMenuImageUrl } from "../../lib/api";
+import { fetchMenu, createOrder, getMenuImageUrl, fetchMenuOrdering } from "../../lib/api";
 import { useCart } from "../../contexts/CartContext";
-import type { MenuItem } from "../../lib/types";
-import { deriveCategories, categoryLabel } from "../../lib/constants";
+import type { MenuItem, MenuOrdering } from "../../lib/types";
+import { deriveCategories, deriveSubcategories, categoryLabel } from "../../lib/constants";
 
 interface Props {
   open: boolean;
@@ -24,16 +24,21 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId, 
   const [customerName, setCustomerName] = useState("");
   const [placing, setPlacing] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
+  const [ordering, setOrdering] = useState<MenuOrdering>({ category_order: [], subcategory_order: {} });
   const cart = useCart();
-  const categories = useMemo(() => deriveCategories(menu), [menu]);
+  const categories = useMemo(() => deriveCategories(menu, ordering.category_order), [menu, ordering]);
 
   useEffect(() => {
     if (!open) return;
     setLoading(true);
-    fetchMenu()
-      .then((data) => {
+    Promise.all([
+      fetchMenu(),
+      fetchMenuOrdering().catch(() => ({ category_order: [], subcategory_order: {} })),
+    ])
+      .then(([data, ord]) => {
         setMenu(data);
-        const cats = deriveCategories(data);
+        setOrdering(ord);
+        const cats = deriveCategories(data, ord.category_order);
         if (cats.length > 0 && !cats.includes(activeCategory)) {
           setActiveCategory(cats[0]);
         }
@@ -46,7 +51,22 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId, 
     return () => clearInterval(id);
   }, [open]);
 
-  const filteredMenu = menu.filter((item) => item.category === activeCategory);
+  // Items for the active category, sorted by sort_order, grouped by subcategory
+  const categoryItems = useMemo(() => {
+    const items = menu
+      .filter((item) => item.category === activeCategory)
+      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+    return items;
+  }, [menu, activeCategory]);
+
+  const subcatGroups = useMemo(() => {
+    const subcats = deriveSubcategories(categoryItems, activeCategory, ordering.subcategory_order[activeCategory]);
+    return subcats.map((sub) => ({
+      subcategory: sub,
+      label: sub ? categoryLabel(sub) : "",
+      items: categoryItems.filter((i) => (i.subcategory || "") === sub),
+    })).filter((g) => g.items.length > 0);
+  }, [categoryItems, activeCategory, ordering]);
 
   // Always open modal so users can see full description + image
   const handleSelectItem = (item: MenuItem) => {
@@ -124,6 +144,54 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId, 
     }).join(" · ");
   };
 
+  const renderItemCard = (item: MenuItem) => (
+    <motion.div
+      key={item.id}
+      whileTap={{ scale: 0.98 }}
+      onClick={() => handleSelectItem(item)}
+      className="w-full text-left p-4 rounded-2xl bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 shadow-sm transition-all cursor-pointer hover:shadow-md flex flex-col gap-2"
+    >
+      {/* Top row: image + name */}
+      <div className="flex items-center gap-3">
+        {item.has_image && (
+          <img
+            src={getMenuImageUrl(item.id)}
+            alt=""
+            className="w-14 h-14 md:w-16 md:h-16 rounded-xl object-cover shrink-0"
+            loading="lazy"
+          />
+        )}
+        <h4 className="font-bold text-stone-800 dark:text-stone-200 text-base">
+          {item.name}
+        </h4>
+      </div>
+
+      {/* Description */}
+      {item.description && (
+        <p className="text-sm text-stone-500 dark:text-stone-400 leading-relaxed">
+          {item.description}
+        </p>
+      )}
+
+      {/* Options with costs */}
+      {optionSummary(item) && (
+        <p className="text-xs text-stone-400 dark:text-stone-500">
+          {optionSummary(item)}
+        </p>
+      )}
+
+      {/* Bottom row: price right, plus button */}
+      <div className="flex items-center justify-end gap-3 pt-1">
+        <span className="font-bold text-brand-olive text-lg">
+          {formatPrice(item.base_price_cents)}
+        </span>
+        <div className="w-8 h-8 rounded-full bg-brand-olive/10 flex items-center justify-center text-brand-olive">
+          <Plus className="w-5 h-5" />
+        </div>
+      </div>
+    </motion.div>
+  );
+
   if (!open) return null;
 
   return (
@@ -134,7 +202,7 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId, 
       className="fixed inset-0 z-[200] bg-[var(--color-bg-light)] dark:bg-[var(--color-bg-dark)] overflow-y-auto"
     >
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-[var(--color-bg-light)]/95 dark:bg-[var(--color-bg-dark)]/95 backdrop-blur-md border-b border-stone-200/50 dark:border-stone-700/50 px-4 py-3 flex items-center justify-between">
+      <div className="sticky top-0 z-10 bg-[var(--color-bg-light)]/95 dark:bg-[var(--color-bg-dark)]/95 backdrop-blur-md border-b border-stone-300 dark:border-stone-700 px-4 py-3 flex items-center justify-between">
         <h2 className="font-serif text-2xl font-black text-stone-800 dark:text-stone-200">
           Menu
         </h2>
@@ -169,7 +237,7 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId, 
             className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all ${
               activeCategory === cat
                 ? "bg-brand-olive text-white shadow-md"
-                : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400"
+                : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-700 shadow-xs"
             }`}
           >
             {categoryLabel(cat)}
@@ -177,58 +245,33 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId, 
         ))}
       </div>
 
-      {/* Menu items — redesigned vertical card layout */}
+      {/* Menu items grouped by subcategory */}
       <div className="px-4 pb-32">
         {loading ? (
           <div className="text-center py-12 text-stone-400">Loading menu...</div>
         ) : (
-          <div className="grid gap-3 mt-2">
-            {filteredMenu.map((item) => (
-              <motion.div
-                key={item.id}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => handleSelectItem(item)}
-                className="w-full text-left p-4 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200/50 dark:border-stone-700/50 shadow-sm transition-all cursor-pointer hover:shadow-md flex flex-col gap-2"
-              >
-                {/* Top row: image + name */}
-                <div className="flex items-center gap-3">
-                  {item.has_image && (
-                    <img
-                      src={getMenuImageUrl(item.id)}
-                      alt=""
-                      className="w-14 h-14 md:w-16 md:h-16 rounded-xl object-cover shrink-0"
-                      loading="lazy"
-                    />
-                  )}
-                  <h4 className="font-bold text-stone-800 dark:text-stone-200 text-base">
-                    {item.name}
-                  </h4>
-                </div>
-
-                {/* Description — full width, clamped */}
-                {item.description && (
-                  <p className="text-sm text-stone-500 dark:text-stone-400 leading-relaxed">
-                    {item.description}
-                  </p>
+          <div className="mt-3 space-y-5">
+            {subcatGroups.map((group) => (
+              <div key={group.subcategory}>
+                {/* Subcategory header */}
+                {group.subcategory && (
+                  <h3 className="text-sm font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider mb-2.5 px-1">
+                    {group.label}
+                  </h3>
                 )}
-
-                {/* Options with costs */}
-                {optionSummary(item) && (
-                  <p className="text-xs text-stone-400 dark:text-stone-500">
-                    {optionSummary(item)}
-                  </p>
-                )}
-
-                {/* Bottom row: price right, plus button */}
-                <div className="flex items-center justify-end gap-3 pt-1">
-                  <span className="font-bold text-brand-olive text-lg">
-                    {formatPrice(item.base_price_cents)}
-                  </span>
-                  <div className="w-8 h-8 rounded-full bg-brand-olive/10 flex items-center justify-center text-brand-olive">
-                    <Plus className="w-5 h-5" />
+                {/* Items — indent subcategory items with a subtle left accent */}
+                {group.subcategory ? (
+                  <div className="ml-2 pl-3 border-l-2 border-brand-olive/20 dark:border-brand-olive/15">
+                    <div className="grid gap-3">
+                      {group.items.map((item) => renderItemCard(item))}
+                    </div>
                   </div>
-                </div>
-              </motion.div>
+                ) : (
+                  <div className="grid gap-3">
+                    {group.items.map((item) => renderItemCard(item))}
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         )}
@@ -265,7 +308,7 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId, 
                 {selectedItem.name}
               </h3>
 
-              {/* Full description — no line clamp */}
+              {/* Full description */}
               {selectedItem.description && (
                 <p className="text-sm text-stone-500 dark:text-stone-400 mb-4 leading-relaxed">
                   {selectedItem.description}
@@ -290,7 +333,7 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId, 
                         className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
                           selectedOptions[opt.name] === choice.label
                             ? "bg-brand-olive text-white shadow-md"
-                            : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400"
+                            : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-700 shadow-xs"
                         }`}
                       >
                         {choice.label}
@@ -354,7 +397,7 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId, 
                         setShowCheckout(false);
                         setOrderPlaced(false);
                       }}
-                      className="px-5 py-3 rounded-xl bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 font-bold text-sm"
+                      className="px-5 py-3 rounded-xl bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 font-bold text-sm border border-stone-200 dark:border-stone-700 shadow-xs"
                     >
                       Order More
                     </button>
@@ -381,7 +424,7 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId, 
                     {cart.items.map((ci, idx) => (
                       <div
                         key={idx}
-                        className="flex items-center justify-between p-3 bg-white dark:bg-stone-900 rounded-xl border border-stone-200/50 dark:border-stone-700/50"
+                        className="flex items-center justify-between p-3 bg-white dark:bg-stone-900 rounded-xl border border-stone-300 dark:border-stone-700"
                       >
                         <div className="flex-1">
                           <p className="font-bold text-stone-800 dark:text-stone-200 text-sm">
@@ -397,7 +440,7 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId, 
                           <div className="flex items-center gap-1">
                             <button
                               onClick={() => cart.updateQuantity(idx, ci.quantity - 1)}
-                              className="w-7 h-7 rounded-full bg-stone-100 dark:bg-stone-800 flex items-center justify-center"
+                              className="w-7 h-7 rounded-full bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 flex items-center justify-center"
                             >
                               <Minus className="w-3 h-3" />
                             </button>
@@ -406,7 +449,7 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId, 
                             </span>
                             <button
                               onClick={() => cart.updateQuantity(idx, ci.quantity + 1)}
-                              className="w-7 h-7 rounded-full bg-stone-100 dark:bg-stone-800 flex items-center justify-center"
+                              className="w-7 h-7 rounded-full bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 flex items-center justify-center"
                             >
                               <Plus className="w-3 h-3" />
                             </button>

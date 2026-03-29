@@ -21,6 +21,7 @@ export default async (req: Request, context: Context) => {
       description: body.description || "",
       base_price_cents: body.base_price_cents,
       category: body.category || "coffee",
+      subcategory: body.subcategory || undefined,
       is_available: body.is_available ?? true,
       sort_order: body.sort_order ?? menu.length + 1,
       options: body.options,
@@ -31,7 +32,6 @@ export default async (req: Request, context: Context) => {
   }
 
   if (req.method === "PUT") {
-    // Update
     const idx = menu.findIndex((m) => m.id === body.id);
     if (idx === -1) return new Response("Not found", { status: 404 });
     menu[idx] = { ...menu[idx], ...body };
@@ -42,10 +42,22 @@ export default async (req: Request, context: Context) => {
   if (req.method === "DELETE") {
     const idx = menu.findIndex((m) => m.id === body.id);
     if (idx === -1) return new Response("Not found", { status: 404 });
-    const [removed] = menu.splice(idx, 1);
+
+    // Permanent delete if ?permanent=true or item already soft-deleted
+    const url = new URL(req.url);
+    const permanent = url.searchParams.get("permanent") === "true";
+
+    if (permanent || menu[idx].deleted_at) {
+      const [removed] = menu.splice(idx, 1);
+      await setMenu(menu);
+      if (removed.has_image) await deleteMenuImage(removed.id);
+      return Response.json(removed);
+    }
+
+    // Soft delete
+    menu[idx].deleted_at = new Date().toISOString();
     await setMenu(menu);
-    if (removed.has_image) await deleteMenuImage(removed.id);
-    return Response.json(removed);
+    return Response.json(menu[idx]);
   }
 
   return new Response("Method not allowed", { status: 405 });

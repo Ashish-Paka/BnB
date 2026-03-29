@@ -1,5 +1,5 @@
 import { getStore } from "@netlify/blobs";
-import type { MenuItem, Customer, Order, Visit, AppConfig } from "./types.js";
+import type { MenuItem, Customer, Order, Visit, AppConfig, MenuOrdering } from "./types.js";
 
 const STORE_NAME = "bnb-data";
 
@@ -27,6 +27,10 @@ async function setJSON<T>(key: string, data: T): Promise<void> {
 // Menu
 export const getMenu = () => getJSON<MenuItem[]>("menu", []);
 export const setMenu = (items: MenuItem[]) => setJSON("menu", items);
+
+// Menu ordering
+export const getMenuOrdering = () => getJSON<MenuOrdering>("menu-ordering", { category_order: [], subcategory_order: {} });
+export const setMenuOrdering = (ordering: MenuOrdering) => setJSON("menu-ordering", ordering);
 
 // Customers
 export const getCustomers = () => getJSON<Customer[]>("customers", []);
