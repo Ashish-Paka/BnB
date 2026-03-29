@@ -30,11 +30,13 @@
 
 :root {
   --bg-color: var(--color-bg-light);
+  --bg-color-95: rgba(253,252,248,0.95);
   --text-color: var(--color-text-light);
 }
 
 .dark {
   --bg-color: var(--color-bg-dark);
+  --bg-color-95: rgba(18,18,18,0.95);
   --text-color: var(--color-text-dark);
 }
 

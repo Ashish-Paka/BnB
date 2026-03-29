@@ -441,7 +441,7 @@ export default function POSTab({ onOrderCreated, addToast }: Props) {
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full sm:max-w-md bg-[var(--color-bg-light)] dark:bg-[var(--color-bg-dark)] rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl"
+              className="w-full sm:max-w-md bg-[var(--bg-color)] rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl"
             >
               <h3 className="font-serif text-xl font-black text-stone-800 dark:text-stone-200 mb-4">
                 {selectedItem.name}

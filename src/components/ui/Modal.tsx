@@ -25,7 +25,7 @@ export default function Modal({ open, onClose, children, title }: Props) {
             exit={{ y: "100%", opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             onClick={(e) => e.stopPropagation()}
-            className="w-full sm:max-w-lg max-h-[90dvh] overflow-y-auto bg-[var(--color-bg-light)] dark:bg-[var(--color-bg-dark)] rounded-t-3xl sm:rounded-3xl shadow-2xl border border-stone-300 dark:border-stone-700"
+            className="w-full sm:max-w-lg max-h-[90dvh] overflow-y-auto bg-[var(--bg-color)] rounded-t-3xl sm:rounded-3xl shadow-2xl border border-stone-300 dark:border-stone-700"
           >
             {/* Handle bar (mobile) */}
             <div className="flex justify-center pt-3 sm:hidden">

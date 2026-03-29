@@ -59,17 +59,21 @@ export default function DashboardPage() {
       return;
     }
     document.documentElement.classList.add("theme-transitioning");
-    if (isDarkMode) {
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-    }
+    localStorage.setItem("theme", isDarkMode ? "dark" : "light");
+    const rafId = requestAnimationFrame(() => {
+      if (isDarkMode) {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
+    });
     const timeout = setTimeout(() => {
       document.documentElement.classList.remove("theme-transitioning");
-    }, 400);
-    return () => clearTimeout(timeout);
+    }, 450);
+    return () => {
+      cancelAnimationFrame(rafId);
+      clearTimeout(timeout);
+    };
   }, [isDarkMode]);
 
   // Orders data
@@ -202,7 +206,7 @@ export default function DashboardPage() {
 
   if (checking) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--color-bg-light)] dark:bg-[var(--color-bg-dark)]">
+      <div className="min-h-screen flex items-center justify-center bg-[var(--bg-color)]">
         <p className="text-stone-400">Loading...</p>
       </div>
     );
@@ -371,11 +375,11 @@ export default function DashboardPage() {
   );
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg-light)] dark:bg-[var(--color-bg-dark)]">
+    <div className="min-h-screen bg-[var(--bg-color)]">
       <Toast toasts={toasts} onDismiss={dismissToast} />
 
       {/* Header */}
-      <div className="sticky top-0 z-50 bg-[var(--color-bg-light)]/95 dark:bg-[var(--color-bg-dark)]/95 backdrop-blur-md border-b border-stone-300 dark:border-stone-700">
+      <div className="sticky top-0 z-50 bg-[var(--bg-color-95)] backdrop-blur-md border-b border-stone-300 dark:border-stone-700">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
           <h1 className="font-serif text-xl font-black text-stone-800 dark:text-stone-200">
             Bones & Bru
@@ -561,7 +565,7 @@ export default function DashboardPage() {
               exit={{ y: "100%", opacity: 0 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full sm:max-w-lg max-h-[90dvh] overflow-y-auto bg-[var(--color-bg-light)] dark:bg-[var(--color-bg-dark)] rounded-t-3xl sm:rounded-3xl shadow-2xl border border-stone-300 dark:border-stone-700"
+              className="w-full sm:max-w-lg max-h-[90dvh] overflow-y-auto bg-[var(--bg-color)] rounded-t-3xl sm:rounded-3xl shadow-2xl border border-stone-300 dark:border-stone-700"
             >
               <div className="flex items-center justify-between px-6 pt-5 pb-2">
                 <h2 className="font-serif text-xl font-bold text-stone-800 dark:text-stone-200">

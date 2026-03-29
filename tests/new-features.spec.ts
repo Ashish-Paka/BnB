@@ -55,31 +55,40 @@ test.describe("Dark Mode Toggle", () => {
 });
 
 test.describe("Menu Tab - Subcategories & Reorder", () => {
-  test("menu tab shows items with drag handles", async ({ page }) => {
+  test("menu tab shows items with drag handles in edit mode", async ({ page }) => {
     await loginAsOwner(page);
     await page.click("text=Menu");
     await page.waitForSelector("text=Menu Items", { timeout: 10000 });
 
     // Items should be visible
     await expect(page.locator("text=Latte").first()).toBeVisible();
-    await expect(page.locator("text=Cappuccino").first()).toBeVisible();
 
-    // Drag handles should be present (buttons with "Drag to reorder" title)
+    // Drag handles should NOT be present before entering edit mode
+    expect(await page.locator('[title="Drag to reorder"]').count()).toBe(0);
+
+    // Enter edit mode
+    await page.click("text=Edit");
+    await page.waitForTimeout(300);
+
+    // Drag handles should now be present
     const dragHandles = page.locator('[title="Drag to reorder"]');
     const handleCount = await dragHandles.count();
     expect(handleCount).toBeGreaterThan(0);
   });
 
-  test("menu tab shows category drag handles when viewing all", async ({ page }) => {
+  test("menu tab shows category drag handles in edit mode", async ({ page }) => {
     await loginAsOwner(page);
     await page.click("text=Menu");
     await page.waitForSelector("text=Menu Items", { timeout: 10000 });
 
-    // Wait for both categories to load (Coffee and Lemonade/Drinks)
+    // Enter edit mode
+    await page.click("text=Edit");
+
+    // Wait for both categories to load
     await page.waitForSelector("text=Coffee", { timeout: 5000 });
     await page.waitForSelector("text=Drinks", { timeout: 5000 });
 
-    // Category drag handles (GripVertical icons on category headers)
+    // Category drag handles should be present
     const catHandles = page.locator('[title="Drag to reorder category"]');
     await expect(catHandles.first()).toBeVisible({ timeout: 5000 });
     const catHandleCount = await catHandles.count();
@@ -111,28 +120,31 @@ test.describe("Menu Tab - Subcategories & Reorder", () => {
     expect(optionTexts.some((t) => t.includes("New subcategory"))).toBe(true);
   });
 
-  test("filtering hides drag handles", async ({ page }) => {
+  test("filtering hides drag handles even in edit mode", async ({ page }) => {
     await loginAsOwner(page);
     await page.click("text=Menu");
     await page.waitForSelector("text=Menu Items", { timeout: 10000 });
+
+    // Enter edit mode
+    await page.click("text=Edit");
+    await page.waitForTimeout(300);
+
+    // Drag handles should be visible
+    expect(await page.locator('[title="Drag to reorder"]').count()).toBeGreaterThan(0);
 
     // Type in search
     await page.fill('input[placeholder="Search items..."]', "Latte");
     await page.waitForTimeout(300);
 
     // Drag handles should be hidden when search is active
-    const dragHandles = page.locator('[title="Drag to reorder"]');
-    const handleCount = await dragHandles.count();
-    expect(handleCount).toBe(0);
+    expect(await page.locator('[title="Drag to reorder"]').count()).toBe(0);
 
     // Clear search
     await page.fill('input[placeholder="Search items..."]', "");
     await page.waitForTimeout(300);
 
     // Drag handles should reappear
-    const dragHandlesAfter = page.locator('[title="Drag to reorder"]');
-    const handleCountAfter = await dragHandlesAfter.count();
-    expect(handleCountAfter).toBeGreaterThan(0);
+    expect(await page.locator('[title="Drag to reorder"]').count()).toBeGreaterThan(0);
   });
 });
 

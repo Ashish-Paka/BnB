@@ -66,7 +66,7 @@ export default function HeroSection() {
           })}
         </div>
         <div className="absolute inset-0 bg-stone-900/40 dark:bg-stone-900/40 z-10 pointer-events-none" />
-        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[var(--color-bg-light)] dark:from-[var(--color-bg-dark)] to-transparent z-10 pointer-events-none" />
+        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[var(--bg-color)] to-transparent z-10 pointer-events-none" />
       </div>
 
       {/* Logo — 25% bigger, z-[5] so popups (z-200+) go over it, no border, red ring is the edge */}

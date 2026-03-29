@@ -83,7 +83,7 @@ export default function DashboardLoginPage({ onLogin }: Props) {
   }, [onLogin]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--color-bg-light)] dark:bg-[var(--color-bg-dark)] px-4">
+    <div className="min-h-screen flex items-center justify-center bg-[var(--bg-color)] px-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

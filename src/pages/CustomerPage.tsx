@@ -166,19 +166,24 @@ export default function CustomerPage() {
       return;
     }
 
-    // On theme toggle: add transition class so ALL elements animate uniformly
+    // On theme toggle: add transition class FIRST, then toggle dark on next frame
+    // so the browser registers transitions before any colors change
     document.documentElement.classList.add("theme-transitioning");
-    if (isDarkMode) {
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-    }
+    localStorage.setItem("theme", isDarkMode ? "dark" : "light");
+    const rafId = requestAnimationFrame(() => {
+      if (isDarkMode) {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
+    });
     const timeout = setTimeout(() => {
       document.documentElement.classList.remove("theme-transitioning");
-    }, 400);
-    return () => clearTimeout(timeout);
+    }, 450);
+    return () => {
+      cancelAnimationFrame(rafId);
+      clearTimeout(timeout);
+    };
   }, [isDarkMode]);
 
   return (
@@ -241,7 +246,7 @@ export default function CustomerPage() {
             key="loader"
             initial={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[9999] bg-stone-100 dark:bg-stone-900 flex items-center justify-center pointer-events-none"
+            className="fixed inset-0 z-[9999] bg-[var(--bg-color)] flex items-center justify-center pointer-events-none"
           >
             <motion.div
               animate={{

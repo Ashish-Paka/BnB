@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Plus, Edit3, Trash2, Eye, EyeOff, X, Search, SlidersHorizontal,
-  ChevronUp, ChevronDown, GripVertical, RotateCcw,
+  ChevronUp, ChevronDown, GripVertical, RotateCcw, Pencil, Lock,
 } from "lucide-react";
 import {
   DndContext, closestCenter, PointerSensor, TouchSensor, KeyboardSensor,
@@ -251,6 +251,9 @@ export default function MenuTab({ addToast }: Props) {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [priceInput, setPriceInput] = useState("5.00");
+
+  // Edit mode — when off, drag handles hidden + action buttons greyed out
+  const [editMode, setEditMode] = useState(false);
 
   // In-store ordering toggle
   const [orderingEnabled, setOrderingEnabled] = useState(false);
@@ -659,10 +662,9 @@ export default function MenuTab({ addToast }: Props) {
       allItems: MenuItem[];
     }[];
 
-  // Can we reorder categories? Only when viewing all, no search/advanced filters
-  const canReorderCategories = filterCategory === "all" && !hasActiveFilters;
-  // Can we reorder items? Only when no search/advanced filters
-  const canReorderItems = !hasActiveFilters;
+  // Can we reorder? Requires edit mode + no search/advanced filters
+  const canReorderCategories = editMode && filterCategory === "all" && !hasActiveFilters;
+  const canReorderItems = editMode && !hasActiveFilters;
 
   // ─── Item Card Renderer ─────────────────────────────────────────
 
@@ -723,9 +725,10 @@ export default function MenuTab({ addToast }: Props) {
         {item.options && item.options.length > 0 && (
           <p className="text-xs text-stone-400 mt-0.5">{item.options.map((o) => o.name).join(" · ")}</p>
         )}
-        <div className="flex items-center justify-end gap-2">
+        <div className={`flex items-center justify-end gap-2 ${!editMode ? "opacity-30 pointer-events-none" : ""}`}>
           <button
             onClick={() => handleToggleAvailability(item)}
+            disabled={!editMode}
             className="p-2 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-400 transition-colors"
             title={item.is_available === false ? "Make available" : "Hide item"}
           >
@@ -733,12 +736,14 @@ export default function MenuTab({ addToast }: Props) {
           </button>
           <button
             onClick={() => openEdit(item)}
+            disabled={!editMode}
             className="p-2 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-400 transition-colors"
           >
             <Edit3 className="w-4 h-4" />
           </button>
           <button
             onClick={() => handleDelete(item)}
+            disabled={!editMode}
             className="p-2 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 text-red-400 transition-colors"
           >
             <Trash2 className="w-4 h-4" />
@@ -884,29 +889,50 @@ export default function MenuTab({ addToast }: Props) {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
         <h2 className="font-serif text-xl font-black text-stone-800 dark:text-stone-200">Menu Items</h2>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={handleToggleOrdering}
             disabled={togglingOrdering}
-            className="flex items-center gap-2 text-sm font-bold text-stone-600 dark:text-stone-400"
+            className="flex items-center gap-2 text-xs sm:text-sm font-black uppercase tracking-wide"
           >
-            <span className="hidden sm:inline">In-Store Ordering</span>
+            <span className={`transition-colors ${
+              orderingEnabled
+                ? "text-green-700 dark:text-green-400"
+                : "text-red-600 dark:text-red-400"
+            }`}>
+              {orderingEnabled ? "Online" : "Offline"}
+            </span>
             <div
-              className={`relative w-11 h-6 rounded-full transition-colors ${
-                orderingEnabled ? "bg-brand-olive" : "bg-stone-300 dark:bg-stone-600"
+              className={`relative w-11 h-6 rounded-full transition-colors border ${
+                orderingEnabled
+                  ? "bg-green-100 dark:bg-green-900/40 border-green-300 dark:border-green-700"
+                  : "bg-red-100 dark:bg-red-900/40 border-red-300 dark:border-red-700"
               }`}
             >
               <div
-                className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
-                  orderingEnabled ? "translate-x-5" : ""
+                className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full shadow transition-all ${
+                  orderingEnabled
+                    ? "translate-x-5 bg-green-500"
+                    : "bg-red-500"
                 }`}
               />
             </div>
           </button>
           <button
-            onClick={openAdd}
+            onClick={() => setEditMode(!editMode)}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all ${
+              editMode
+                ? "bg-brand-orange text-white shadow"
+                : "bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400 border border-stone-200 dark:border-stone-700"
+            }`}
+          >
+            {editMode ? <Pencil className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+            {editMode ? "Editing" : "Edit"}
+          </button>
+          <button
+            onClick={() => { setEditMode(true); openAdd(); }}
             className="flex items-center gap-1 px-4 py-2 rounded-xl bg-brand-olive text-white text-sm font-bold shadow hover:shadow-md transition-all"
           >
             <Plus className="w-4 h-4" /> Add Item
@@ -1202,9 +1228,9 @@ export default function MenuTab({ addToast }: Props) {
               exit={{ y: "100%", opacity: 0 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full sm:max-w-lg max-h-[90dvh] overflow-y-auto bg-[var(--color-bg-light)] dark:bg-[var(--color-bg-dark)] rounded-t-3xl sm:rounded-3xl shadow-2xl border border-stone-300 dark:border-stone-700"
+              className="w-full sm:max-w-lg max-h-[90dvh] overflow-y-auto bg-[var(--bg-color)] rounded-t-3xl sm:rounded-3xl shadow-2xl border border-stone-300 dark:border-stone-700"
             >
-              <div className="flex items-center justify-between px-6 pt-5 pb-2">
+              <div className="flex items-center justify-between px-4 sm:px-6 pt-5 pb-2">
                 <h2 className="font-serif text-xl font-bold text-stone-800 dark:text-stone-200">
                   {editingId ? "Edit Item" : "New Item"}
                 </h2>
@@ -1216,7 +1242,7 @@ export default function MenuTab({ addToast }: Props) {
                 </button>
               </div>
 
-              <div className="px-6 pb-6 space-y-4">
+              <div className="px-4 sm:px-6 pb-6 space-y-4">
                 {/* Name */}
                 <div>
                   <label className="text-xs font-bold text-stone-500 uppercase tracking-wider block mb-1">Name</label>
@@ -1366,7 +1392,7 @@ export default function MenuTab({ addToast }: Props) {
                   {form.options.map((opt, optIdx) => (
                     <div
                       key={optIdx}
-                      className="mb-3 p-3 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700"
+                      className="mb-3 p-2 sm:p-3 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 overflow-hidden"
                     >
                       <div className="flex items-center justify-between mb-2">
                         <input
@@ -1384,16 +1410,16 @@ export default function MenuTab({ addToast }: Props) {
                         </button>
                       </div>
                       {opt.choices.map((choice, choiceIdx) => (
-                        <div key={choiceIdx} className="flex items-center gap-2 mb-1">
+                        <div key={choiceIdx} className="flex items-center gap-1.5 mb-1 min-w-0">
                           <input
                             type="text"
                             value={choice.label}
                             onChange={(e) => updateChoice(optIdx, choiceIdx, "label", e.target.value)}
-                            placeholder="Choice label"
-                            className="flex-1 px-2 py-1 rounded-lg bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 text-xs text-stone-800 dark:text-stone-200 outline-none"
+                            placeholder="Label"
+                            className="min-w-0 flex-1 px-2 py-1 rounded-lg bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 text-xs text-stone-800 dark:text-stone-200 outline-none"
                           />
-                          <div className="flex items-center gap-1">
-                            <span className="text-xs text-stone-400">+$</span>
+                          <div className="flex items-center gap-0.5 shrink-0">
+                            <span className="text-[10px] text-stone-400">+$</span>
                             <input
                               type="number"
                               step="0.50"
@@ -1402,10 +1428,10 @@ export default function MenuTab({ addToast }: Props) {
                               onChange={(e) =>
                                 updateChoice(optIdx, choiceIdx, "extra_cents", Math.round(parseFloat(e.target.value || "0") * 100))
                               }
-                              className="w-16 px-2 py-1 rounded-lg bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 text-xs text-stone-800 dark:text-stone-200 outline-none"
+                              className="w-14 px-1.5 py-1 rounded-lg bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 text-xs text-stone-800 dark:text-stone-200 outline-none"
                             />
                           </div>
-                          <button onClick={() => removeChoice(optIdx, choiceIdx)} className="p-0.5 text-red-400">
+                          <button onClick={() => removeChoice(optIdx, choiceIdx)} className="p-0.5 text-red-400 shrink-0">
                             <X className="w-3 h-3" />
                           </button>
                         </div>

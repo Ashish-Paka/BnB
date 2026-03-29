@@ -199,10 +199,10 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId, 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[200] bg-[var(--color-bg-light)] dark:bg-[var(--color-bg-dark)] overflow-y-auto"
+      className="fixed inset-0 z-[200] bg-[var(--bg-color)] overflow-y-auto"
     >
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-[var(--color-bg-light)]/95 dark:bg-[var(--color-bg-dark)]/95 backdrop-blur-md border-b border-stone-300 dark:border-stone-700 px-4 py-3 flex items-center justify-between">
+      <div className="sticky top-0 z-10 bg-[var(--bg-color-95)] backdrop-blur-md border-b border-stone-300 dark:border-stone-700 px-4 py-3 flex items-center justify-between">
         <h2 className="font-serif text-2xl font-black text-stone-800 dark:text-stone-200">
           Menu
         </h2>
@@ -293,7 +293,7 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId, 
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full sm:max-w-lg bg-[var(--color-bg-light)] dark:bg-[var(--color-bg-dark)] rounded-t-3xl p-6 shadow-2xl max-h-[85dvh] overflow-y-auto"
+              className="w-full sm:max-w-lg bg-[var(--bg-color)] rounded-t-3xl p-6 shadow-2xl max-h-[85dvh] overflow-y-auto"
             >
               {/* Item image in modal */}
               {selectedItem.has_image && (
@@ -374,7 +374,7 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId, 
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full sm:max-w-lg bg-[var(--color-bg-light)] dark:bg-[var(--color-bg-dark)] rounded-t-3xl p-6 shadow-2xl max-h-[80dvh] overflow-y-auto"
+              className="w-full sm:max-w-lg bg-[var(--bg-color)] rounded-t-3xl p-6 shadow-2xl max-h-[80dvh] overflow-y-auto"
             >
               {orderPlaced ? (
                 <div className="text-center py-8">
