@@ -1,17 +1,24 @@
-import type { MenuItem, MenuOrdering, Order, Customer, Visit } from "./types";
+import type { MenuItem, MenuOrdering, MenuPresetState, Order, Customer, Visit } from "./types";
 
 const API_BASE = "/.netlify/functions";
 
+interface RequestSettings {
+  auth?: boolean;
+}
+
 async function request<T>(
   path: string,
-  options?: RequestInit
+  options?: RequestInit,
+  settings?: RequestSettings
 ): Promise<T> {
-  const token = localStorage.getItem("owner_token");
+  const useAuth = settings?.auth ?? true;
+  const token = useAuth ? localStorage.getItem("owner_token") : null;
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
   const res = await fetch(`${API_BASE}/${path}`, {
+    cache: "no-store",
     ...options,
     headers: { ...headers, ...options?.headers },
   });
@@ -22,8 +29,14 @@ async function request<T>(
   return res.json();
 }
 
+async function publicRequest<T>(path: string, options?: RequestInit): Promise<T> {
+  return request<T>(path, options, { auth: false });
+}
+
 // Menu
 export const fetchMenu = () => request<MenuItem[]>("menu-list");
+export const fetchPublishedMenu = () => request<MenuItem[]>("menu-list?snapshot=published");
+export const fetchPublicMenu = () => publicRequest<MenuItem[]>("menu-list");
 
 export const getMenuImageUrl = (itemId: string) =>
   `${API_BASE}/menu-image?id=${itemId}`;
@@ -52,9 +65,13 @@ export async function deleteMenuItemImage(itemId: string): Promise<void> {
   if (!res.ok) throw new Error(await res.text());
 }
 
+type MenuItemMutation = Partial<Omit<MenuItem, "subcategory">> & {
+  subcategory?: string | null;
+};
+
 export const manageMenuItem = (
   method: "POST" | "PUT" | "DELETE",
-  item: Partial<MenuItem>
+  item: MenuItemMutation
 ) => request<MenuItem>("menu-manage", { method, body: JSON.stringify(item) });
 
 export const fetchMenuIncludeDeleted = () =>
@@ -80,6 +97,10 @@ export const reorderMenuItems = (items: { id: string; sort_order: number }[]) =>
 
 export const fetchMenuOrdering = () =>
   request<MenuOrdering>("menu-ordering");
+export const fetchPublishedMenuOrdering = () =>
+  request<MenuOrdering>("menu-ordering?snapshot=published");
+export const fetchPublicMenuOrdering = () =>
+  publicRequest<MenuOrdering>("menu-ordering");
 
 export const updateMenuOrdering = (ordering: MenuOrdering) =>
   request<MenuOrdering>("menu-ordering", {
@@ -99,7 +120,7 @@ export const createOrder = (order: {
   is_free_reward?: boolean;
   notes?: string;
   created_by: "customer" | "owner";
-}) => request<Order>("orders-create", { method: "POST", body: JSON.stringify(order) });
+}) => publicRequest<Order>("orders-create", { method: "POST", body: JSON.stringify(order) });
 
 export const updateOrder = (id: string, updates: Partial<Order>) =>
   request<Order>("orders-update", {
@@ -128,7 +149,7 @@ export const permanentlyDeleteOrder = (id: string) =>
   });
 
 export const fetchOrderStatus = (id: string) =>
-  request<{ status: string; customer_name: string; customer_id: string | null }>(
+  publicRequest<{ status: string; customer_name: string; customer_id: string | null }>(
     `orders-status?id=${id}`
   );
 
@@ -175,7 +196,7 @@ export const checkRewards = (identifier: {
   email?: string;
   name?: string;
 }) =>
-  request<{ customer: Customer | null }>("rewards-check", {
+  publicRequest<{ customer: Customer | null }>("rewards-check", {
     method: "POST",
     body: JSON.stringify(identifier),
   });
@@ -202,22 +223,50 @@ export const verifyTotp = (code: string, customerId: string, redeem?: boolean) =
 
 // Config
 export const fetchPublicConfig = () =>
-  request<{ in_store_ordering_enabled: boolean }>("config-public");
+  publicRequest<{ in_store_ordering_enabled: boolean; menu_editing_active: boolean }>("config-public");
 
-export const updateConfig = (updates: { in_store_ordering_enabled: boolean }) =>
-  request<{ in_store_ordering_enabled: boolean }>("config-update", {
+export const updateConfig = (updates: {
+  in_store_ordering_enabled?: boolean;
+  menu_editing_active?: boolean;
+}) =>
+  request<{ in_store_ordering_enabled: boolean; menu_editing_active: boolean }>("config-update", {
     method: "PUT",
     body: JSON.stringify(updates),
+  });
+
+export const publishMenuDraft = () =>
+  request<{ success: boolean; published_items: number; category_order: string[] }>("menu-publish", {
+    method: "POST",
+  });
+
+export const fetchMenuPresets = () =>
+  request<MenuPresetState>("menu-presets");
+
+export const updateMenuPresetTitle = (index: number, title: string) =>
+  request<MenuPresetState>("menu-presets", {
+    method: "PUT",
+    body: JSON.stringify({ index, title }),
+  });
+
+export const activateMenuPreset = (index: number, draftOnly = false) =>
+  request<MenuPresetState>("menu-presets", {
+    method: "POST",
+    body: JSON.stringify({ index, draft_only: draftOnly }),
   });
 
 // Backup
 type BackupData = {
   menu: MenuItem[];
+  menu_ordering?: MenuOrdering;
+  published_menu?: MenuItem[];
+  published_menu_ordering?: MenuOrdering;
+  menu_presets?: any;
   customers: Customer[];
   orders: Order[];
   visits: Visit[];
   config: any;
   images: Record<string, { data: string; content_type: string }>;
+  published_images?: Record<string, { data: string; content_type: string }>;
   exported_at: string;
 };
 
@@ -233,6 +282,14 @@ export const importBackup = (data: any, mode: "overwrite" | "combine" = "overwri
     method: "POST",
     body: JSON.stringify({ ...data, mode }),
   });
+
+export const restoreLatestBackup = () =>
+  request<{ success: boolean; mode: string; imported: Record<string, number | boolean>; restored_from?: string | null }>(
+    "backup-restore",
+    {
+      method: "POST",
+    }
+  );
 
 // Auth
 export const ownerLogin = (password: string) =>

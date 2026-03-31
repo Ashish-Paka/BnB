@@ -1,6 +1,8 @@
 import type { Context } from "@netlify/functions";
 import { getMenu, setMenu } from "./_shared/store.js";
 import { requireOwner } from "./_shared/auth.js";
+import { syncActiveMenuPreset } from "./_shared/menu-presets.js";
+import { normalizeMenuSortOrders } from "./_shared/menu-sort.js";
 
 export default async (req: Request, context: Context) => {
   const headers = Object.fromEntries(req.headers.entries());
@@ -28,7 +30,9 @@ export default async (req: Request, context: Context) => {
     }
   }
 
-  await setMenu(menu);
-  menu.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
-  return Response.json(menu);
+  const { items: normalizedMenu } = normalizeMenuSortOrders(menu);
+  await setMenu(normalizedMenu);
+  await syncActiveMenuPreset();
+  normalizedMenu.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+  return Response.json(normalizedMenu);
 };

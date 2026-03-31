@@ -1,7 +1,24 @@
 import { useState, useEffect, useRef } from "react";
 import { Eye, EyeOff, Trash2, Star, Shield, RefreshCw, KeyRound, Download, Upload, Clock, Cloud } from "lucide-react";
-import { changePassword, fetchSettings, addGoogleAccount, removeGoogleAccount, setPrimaryAccount, replaceGoogleAccount, exportBackup, exportBackupOnline, importBackup, fetchBackupStatus } from "../../lib/api";
-import { generateBackupZip, downloadBlob, formatBackupTimestamp, validateBackupJSON } from "../../lib/backup-utils";
+import {
+  changePassword,
+  fetchSettings,
+  addGoogleAccount,
+  removeGoogleAccount,
+  setPrimaryAccount,
+  replaceGoogleAccount,
+  exportBackup,
+  exportBackupOnline,
+  importBackup,
+  restoreLatestBackup,
+} from "../../lib/api";
+import {
+  generateBackupZip,
+  downloadBlob,
+  formatBackupTimestamp,
+  parseBackupFile,
+  validateBackupJSON,
+} from "../../lib/backup-utils";
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 
@@ -12,9 +29,11 @@ interface GoogleAccount {
 
 interface Props {
   addToast: (message: string, type: "success" | "error" | "info") => void;
+  lastOnlineBackup: string | null;
+  setLastOnlineBackup: (value: string | null) => void;
 }
 
-export default function SettingsTab({ addToast }: Props) {
+export default function SettingsTab({ addToast, lastOnlineBackup, setLastOnlineBackup }: Props) {
   // Password state
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -181,38 +200,40 @@ export default function SettingsTab({ addToast }: Props) {
   const [onlineBackupLoading, setOnlineBackupLoading] = useState(false);
   const [downloadLoading, setDownloadLoading] = useState(false);
   const [importLoading, setImportLoading] = useState(false);
-  const [lastOnlineBackup, setLastOnlineBackup] = useState<string | null>(null);
+  const [restoringLatest, setRestoringLatest] = useState(false);
   const [pendingImport, setPendingImport] = useState<{ data: any; summary: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Fetch last online backup time on mount + auto-backup hourly
-  useEffect(() => {
-    fetchBackupStatus()
-      .then((s) => { if (s.exported_at) setLastOnlineBackup(s.exported_at); })
-      .catch(() => {});
-
-    const runAutoBackup = async () => {
-      try {
-        await exportBackupOnline();
-        setLastOnlineBackup(new Date().toISOString());
-      } catch {}
-    };
-
-    const timeout = setTimeout(runAutoBackup, 5000);
-    const interval = setInterval(runAutoBackup, 3600000);
-    return () => { clearTimeout(timeout); clearInterval(interval); };
-  }, []);
 
   const handleBackupOnline = async () => {
     setOnlineBackupLoading(true);
     try {
       const data = await exportBackupOnline();
       setLastOnlineBackup(data.exported_at);
-      addToast("Backup saved online!", "success");
+      addToast("Restore point created", "success");
     } catch {
-      addToast("Failed to save backup", "error");
+      addToast("Failed to create restore point", "error");
     } finally {
       setOnlineBackupLoading(false);
+    }
+  };
+
+  const handleRestoreLatest = async () => {
+    if (!lastOnlineBackup) {
+      addToast("No restore point available", "error");
+      return;
+    }
+    if (!window.confirm("Restore all data from the latest restore point? This will overwrite the current app state.")) {
+      return;
+    }
+
+    setRestoringLatest(true);
+    try {
+      const result = await restoreLatestBackup();
+      addToast(`Restored latest restore point${result.restored_from ? ` from ${new Date(result.restored_from).toLocaleString()}` : ""}`, "success");
+    } catch (err: any) {
+      addToast(err?.message || "Failed to restore latest restore point", "error");
+    } finally {
+      setRestoringLatest(false);
     }
   };
 
@@ -238,9 +259,8 @@ export default function SettingsTab({ addToast }: Props) {
     if (!file) return;
     e.target.value = "";
 
-    file.text().then((text) => {
-      try {
-        const data = JSON.parse(text);
+    void parseBackupFile(file)
+      .then((data) => {
         const { valid, errors } = validateBackupJSON(data);
         if (!valid) {
           addToast(`Invalid backup: ${errors.join(", ")}`, "error");
@@ -248,17 +268,19 @@ export default function SettingsTab({ addToast }: Props) {
         }
         const summary = [
           data.menu?.length ? `${data.menu.length} menu items` : null,
+          data.menu_presets?.presets?.length ? `${data.menu_presets.presets.length} menu presets` : null,
           data.customers?.length ? `${data.customers.length} customers` : null,
           data.orders?.length ? `${data.orders.length} orders` : null,
           data.visits?.length ? `${data.visits.length} visits` : null,
           data.config ? "config" : null,
           data.images ? `${Object.keys(data.images).length} images` : null,
+          data.published_images ? `${Object.keys(data.published_images).length} published images` : null,
         ].filter(Boolean).join(", ");
         setPendingImport({ data, summary });
-      } catch {
-        addToast("Invalid JSON file", "error");
-      }
-    });
+      })
+      .catch((err: any) => {
+        addToast(err?.message || "Invalid backup file", "error");
+      });
   };
 
   const executeImport = async (mode: "overwrite" | "combine") => {
@@ -467,7 +489,7 @@ export default function SettingsTab({ addToast }: Props) {
       {(isOwner || isAdminUser) && (
         <div className="p-5 rounded-2xl bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 shadow-sm">
           <h3 className="font-bold text-stone-800 dark:text-stone-200 mb-1">Data Backup</h3>
-          <p className="text-xs text-stone-400 mb-4">Menu, images, customers, orders, visits, config, and account info.</p>
+          <p className="text-xs text-stone-400 mb-4">Menu drafts, published menu state, presets, images, customers, orders, visits, config, and account info.</p>
 
           <div className="flex flex-col gap-3">
             <button
@@ -476,7 +498,16 @@ export default function SettingsTab({ addToast }: Props) {
               className="w-full py-3 rounded-xl bg-brand-olive text-white font-bold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
               <Cloud className="w-4 h-4" />
-              {onlineBackupLoading ? "Saving..." : "Backup Online"}
+              {onlineBackupLoading ? "Saving..." : "Create Restore Point"}
+            </button>
+
+            <button
+              onClick={handleRestoreLatest}
+              disabled={restoringLatest || !lastOnlineBackup}
+              className="w-full py-3 rounded-xl bg-white dark:bg-stone-800 border-2 border-brand-olive text-brand-olive font-bold shadow hover:shadow-md transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              <RefreshCw className={`w-4 h-4 ${restoringLatest ? "animate-spin" : ""}`} />
+              {restoringLatest ? "Restoring..." : "Restore From Latest Restore Point"}
             </button>
 
             <button
@@ -495,7 +526,7 @@ export default function SettingsTab({ addToast }: Props) {
                 className="w-full py-3 rounded-xl bg-white dark:bg-stone-800 border-2 border-stone-300 dark:border-stone-600 text-stone-600 dark:text-stone-400 font-bold shadow hover:shadow-md transition-all disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 <Upload className="w-4 h-4" />
-                {importLoading ? "Importing..." : "Import Data"}
+                {importLoading ? "Importing..." : "Import Backup (.json or .zip)"}
               </button>
             ) : (
               <div className="p-4 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700">
@@ -528,7 +559,7 @@ export default function SettingsTab({ addToast }: Props) {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".json"
+              accept=".json,.zip,application/json,application/zip"
               className="hidden"
               onChange={handleImportFile}
             />
@@ -537,7 +568,7 @@ export default function SettingsTab({ addToast }: Props) {
           {lastOnlineBackup && (
             <div className="flex items-center gap-1.5 mt-4 text-xs text-stone-400">
               <Clock className="w-3 h-3" />
-              Last online backup: {new Date(lastOnlineBackup).toLocaleString()}
+              Latest restore point: {new Date(lastOnlineBackup).toLocaleString()}
             </div>
           )}
         </div>

@@ -1,15 +1,30 @@
 import type { Context } from "@netlify/functions";
-import { getMenu, setMenu, getMenuImage, setMenuImage, deleteMenuImage } from "./_shared/store.js";
+import {
+  getMenu,
+  setMenu,
+  getMenuImage,
+  getPublishedMenuImage,
+  setMenuImage,
+  deleteMenuImage,
+} from "./_shared/store.js";
 import { requireOwner } from "./_shared/auth.js";
+import { syncActiveMenuPreset } from "./_shared/menu-presets.js";
+import { getConfig } from "./_shared/store.js";
 
 export default async (req: Request, _context: Context) => {
   const url = new URL(req.url);
   const itemId = url.searchParams.get("id");
   if (!itemId) return new Response("Missing id", { status: 400 });
+  const headers = Object.fromEntries(req.headers.entries());
+  const isOwner = requireOwner(headers);
 
   // GET — public, serve image
   if (req.method === "GET") {
-    const img = await getMenuImage(itemId);
+    const config = isOwner ? null : await getConfig();
+    const publishedImage = isOwner ? null : await getPublishedMenuImage(itemId);
+    const img = isOwner
+      ? await getMenuImage(itemId)
+      : publishedImage ?? (!(config?.menu_editing_active) ? await getMenuImage(itemId) : null);
     if (!img) return new Response("Not found", { status: 404 });
     return new Response(img.data, {
       headers: {
@@ -20,8 +35,7 @@ export default async (req: Request, _context: Context) => {
   }
 
   // Auth required for POST/DELETE
-  const headers = Object.fromEntries(req.headers.entries());
-  if (!requireOwner(headers)) {
+  if (!isOwner) {
     return new Response("Unauthorized", { status: 401 });
   }
 
@@ -42,6 +56,8 @@ export default async (req: Request, _context: Context) => {
       await setMenu(menu);
     }
 
+    await syncActiveMenuPreset();
+
     return Response.json({ success: true });
   }
 
@@ -55,6 +71,8 @@ export default async (req: Request, _context: Context) => {
       menu[idx].has_image = false;
       await setMenu(menu);
     }
+
+    await syncActiveMenuPreset();
 
     return Response.json({ success: true });
   }

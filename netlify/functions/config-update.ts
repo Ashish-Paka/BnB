@@ -18,10 +18,14 @@ export default async (req: Request, context: Context) => {
   if (typeof body.in_store_ordering_enabled === "boolean") {
     config.in_store_ordering_enabled = body.in_store_ordering_enabled;
   }
+  if (typeof body.menu_editing_active === "boolean") {
+    config.menu_editing_active = body.menu_editing_active;
+  }
 
   await setConfig(config);
 
   return Response.json({
     in_store_ordering_enabled: config.in_store_ordering_enabled ?? false,
+    menu_editing_active: config.menu_editing_active ?? false,
   });
 };

@@ -17,12 +17,19 @@ import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import {
   fetchMenu, manageMenuItem, fetchPublicConfig, updateConfig,
   uploadMenuImage, deleteMenuItemImage, getMenuImageUrl,
-  reorderMenuItems, fetchMenuOrdering, updateMenuOrdering,
+  reorderMenuItems, fetchMenuOrdering, fetchPublishedMenu, fetchPublishedMenuOrdering, updateMenuOrdering,
+  publishMenuDraft, fetchMenuPresets, updateMenuPresetTitle, activateMenuPreset,
   fetchMenuIncludeDeleted, restoreMenuItem, permanentlyDeleteMenuItem,
 } from "../../lib/api";
 import { resizeImage } from "../../lib/image-utils";
-import type { MenuItem, MenuItemOption, MenuOrdering } from "../../lib/types";
-import { DEFAULT_CATEGORY, deriveCategories, deriveSubcategories, categoryLabel } from "../../lib/constants";
+import type { MenuItem, MenuItemOption, MenuOrdering, MenuPresetState } from "../../lib/types";
+import {
+  DEFAULT_CATEGORY,
+  deriveCategories,
+  deriveCategoryLayout,
+  deriveSubcategories,
+  categoryLabel,
+} from "../../lib/constants";
 import { ImagePlus, ImageOff } from "lucide-react";
 
 // ─── Props & Form Types ──────────────────────────────────────────────
@@ -254,10 +261,23 @@ export default function MenuTab({ addToast }: Props) {
 
   // Edit mode — when off, drag handles hidden + action buttons greyed out
   const [editMode, setEditMode] = useState(false);
+  const [syncingEditMode, setSyncingEditMode] = useState(false);
 
   // In-store ordering toggle
   const [orderingEnabled, setOrderingEnabled] = useState(false);
   const [togglingOrdering, setTogglingOrdering] = useState(false);
+  const [presetState, setPresetState] = useState<MenuPresetState>({
+    active_preset_index: 0,
+    presets: Array.from({ length: 5 }, (_, index) => ({
+      index,
+      title: "",
+      label: `Menu ${index}`,
+    })),
+  });
+  const [presetTitleInput, setPresetTitleInput] = useState("");
+  const [savingPresetTitle, setSavingPresetTitle] = useState(false);
+  const [switchingPreset, setSwitchingPreset] = useState(false);
+  const [showPresetNaming, setShowPresetNaming] = useState(false);
 
   // New category/subcategory input
   const [newCategory, setNewCategory] = useState("");
@@ -336,30 +356,51 @@ export default function MenuTab({ addToast }: Props) {
     return deriveSubcategories(items, cat, ordering.subcategory_order[cat]).filter((s) => s !== "");
   }, [items, form.category, ordering]);
 
+  const applyPresetState = useCallback((state: MenuPresetState) => {
+    setPresetState(state);
+    const activePreset = state.presets.find((preset) => preset.index === state.active_preset_index);
+    setPresetTitleInput(activePreset?.title || "");
+  }, []);
+
+  const loadPresetState = useCallback(() => {
+    fetchMenuPresets().then(applyPresetState).catch(() => {});
+  }, [applyPresetState]);
+
   // ─── Data Loading ───────────────────────────────────────────────
 
-  const loadMenu = () => {
+  const loadMenu = useCallback((editingSnapshot = editMode) => {
     setLoading(true);
-    fetchMenu()
-      .then(setItems)
+    Promise.all([
+      editingSnapshot ? fetchMenu() : fetchPublishedMenu(),
+      editingSnapshot ? fetchMenuOrdering() : fetchPublishedMenuOrdering(),
+    ])
+      .then(([nextItems, nextOrdering]) => {
+        setItems(nextItems);
+        setOrdering(nextOrdering);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
-  };
+  }, [editMode]);
 
   useEffect(() => {
-    loadMenu();
-    fetchMenuOrdering().then(setOrdering).catch(() => {});
-    fetchPublicConfig()
-      .then((c) => setOrderingEnabled(c.in_store_ordering_enabled))
-      .catch(() => {});
-    const id = setInterval(() => {
-      fetchMenu().then(setItems).catch(() => {});
+    loadPresetState();
+
+    const loadDashboardState = () =>
       fetchPublicConfig()
-        .then((c) => setOrderingEnabled(c.in_store_ordering_enabled))
-        .catch(() => {});
+        .then((c) => {
+          setOrderingEnabled(c.in_store_ordering_enabled);
+          const nextEditMode = c.menu_editing_active ?? false;
+          setEditMode(nextEditMode);
+          return loadMenu(nextEditMode);
+        })
+        .catch(() => loadMenu());
+
+    void loadDashboardState();
+    const id = setInterval(() => {
+      void loadDashboardState();
     }, 10_000);
     return () => clearInterval(id);
-  }, []);
+  }, [loadMenu, loadPresetState]);
 
   // Load deleted items when section is opened
   const loadDeletedItems = useCallback(() => {
@@ -384,6 +425,86 @@ export default function MenuTab({ addToast }: Props) {
       addToast("Failed to update", "error");
     } finally {
       setTogglingOrdering(false);
+    }
+  };
+
+  const handleSavePresetTitle = async () => {
+    setSavingPresetTitle(true);
+    try {
+      const next = await updateMenuPresetTitle(presetState.active_preset_index, presetTitleInput);
+      applyPresetState(next);
+      setShowPresetNaming(false);
+      addToast("Preset title updated", "success");
+    } catch {
+      addToast("Failed to update preset title", "error");
+    } finally {
+      setSavingPresetTitle(false);
+    }
+  };
+
+  const handleActivatePreset = async (index: number) => {
+    if (index === presetState.active_preset_index) return;
+    if (saving) {
+      addToast("Finish saving the current item first", "error");
+      return;
+    }
+    if (!editMode || syncingEditMode) {
+      addToast("Enter edit mode before switching presets", "error");
+      return;
+    }
+
+    setSwitchingPreset(true);
+    try {
+      const next = await activateMenuPreset(index, true);
+      applyPresetState(next);
+      setShowPresetNaming(false);
+      setShowForm(false);
+      setEditingId(null);
+      void loadMenu(true);
+      addToast(`Loaded ${next.presets.find((preset) => preset.index === index)?.label || `Menu ${index}`} into the draft menu`, "success");
+    } catch {
+      addToast("Failed to switch preset", "error");
+    } finally {
+      setSwitchingPreset(false);
+    }
+  };
+
+  const enterEditMode = async (afterEnter?: () => void) => {
+    if (saving || switchingPreset) return;
+    if (editMode) {
+      afterEnter?.();
+      return;
+    }
+
+    setSyncingEditMode(true);
+    try {
+      await publishMenuDraft();
+      const res = await updateConfig({ menu_editing_active: true });
+      setEditMode(res.menu_editing_active);
+      afterEnter?.();
+    } catch {
+      addToast("Failed to enter edit mode", "error");
+    } finally {
+      setSyncingEditMode(false);
+    }
+  };
+
+  const exitEditMode = async () => {
+    if (saving || switchingPreset) return;
+    if (!editMode) return;
+
+    setSyncingEditMode(true);
+    try {
+      await publishMenuDraft();
+      const res = await updateConfig({ menu_editing_active: false });
+      setEditMode(res.menu_editing_active);
+      setShowForm(false);
+      setEditingId(null);
+      addToast("Menu changes published", "success");
+    } catch {
+      addToast("Failed to publish menu changes", "error");
+    } finally {
+      setSyncingEditMode(false);
     }
   };
 
@@ -421,9 +542,10 @@ export default function MenuTab({ addToast }: Props) {
     setSaving(true);
     try {
       const data = {
-        ...form,
+        name: form.name,
+        description: form.description,
         category: resolvedCategory,
-        subcategory: resolvedSubcategory || undefined,
+        subcategory: resolvedSubcategory || null,
         base_price_cents: Math.round(parseFloat(priceInput) * 100) || 500,
         options: form.options.length > 0 ? form.options : undefined,
       };
@@ -442,7 +564,7 @@ export default function MenuTab({ addToast }: Props) {
       }
       addToast(editingId ? "Item updated" : "Item added", "success");
       setShowForm(false);
-      loadMenu();
+      void loadMenu();
     } catch {
       addToast("Failed to save", "error");
     } finally {
@@ -467,7 +589,7 @@ export default function MenuTab({ addToast }: Props) {
       await restoreMenuItem(item.id);
       setDeletedItems((prev) => prev.filter((i) => i.id !== item.id));
       addToast(`"${item.name}" restored`, "success");
-      loadMenu();
+      void loadMenu();
     } catch {
       addToast("Failed to restore", "error");
     }
@@ -543,27 +665,34 @@ export default function MenuTab({ addToast }: Props) {
 
     reorderMenuItems(updates).catch(() => {
       addToast("Failed to reorder", "error");
-      loadMenu();
+      void loadMenu();
     });
   };
 
-  const handleSubcategoryDragEnd = (event: DragEndEvent, cat: string, subcatIds: string[]) => {
+  const handleCategoryLayoutDragEnd = (
+    event: DragEndEvent,
+    cat: string,
+    layoutEntries: { id: string; token: string }[]
+  ) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
-    const oldIndex = subcatIds.indexOf(active.id as string);
-    const newIndex = subcatIds.indexOf(over.id as string);
+    const oldIndex = layoutEntries.findIndex((entry) => entry.id === active.id);
+    const newIndex = layoutEntries.findIndex((entry) => entry.id === over.id);
     if (oldIndex === -1 || newIndex === -1) return;
 
-    const newOrder = arrayMove([...subcatIds], oldIndex, newIndex);
+    const newOrder = arrayMove([...layoutEntries], oldIndex, newIndex).map((entry) => entry.token);
     const newOrdering = {
       ...ordering,
-      subcategory_order: { ...ordering.subcategory_order, [cat]: newOrder },
+      subcategory_order: {
+        ...ordering.subcategory_order,
+        [cat]: newOrder,
+      },
     };
     setOrdering(newOrdering);
 
     updateMenuOrdering(newOrdering).catch(() => {
-      addToast("Failed to reorder subcategories", "error");
+      addToast("Failed to reorder category layout", "error");
       fetchMenuOrdering().then(setOrdering).catch(() => {});
     });
   };
@@ -645,20 +774,13 @@ export default function MenuTab({ addToast }: Props) {
     .map((cat) => {
       const catItems = sortedFiltered.filter((i) => i.category === cat);
       if (catItems.length === 0) return null;
-      const subcats = deriveSubcategories(catItems, cat, ordering.subcategory_order[cat]);
-      const subcatGroups = subcats
-        .map((sub) => ({
-          subcategory: sub,
-          label: sub ? categoryLabel(sub) : "",
-          items: catItems.filter((i) => (i.subcategory || "") === sub),
-        }))
-        .filter((g) => g.items.length > 0);
-      return { category: cat, label: categoryLabel(cat), subcatGroups, allItems: catItems };
+      const layoutEntries = deriveCategoryLayout(catItems, cat, ordering.subcategory_order[cat]);
+      return { category: cat, label: categoryLabel(cat), layoutEntries, allItems: catItems };
     })
     .filter(Boolean) as {
       category: string;
       label: string;
-      subcatGroups: { subcategory: string; label: string; items: MenuItem[] }[];
+      layoutEntries: ReturnType<typeof deriveCategoryLayout<MenuItem>>;
       allItems: MenuItem[];
     }[];
 
@@ -787,26 +909,39 @@ export default function MenuTab({ addToast }: Props) {
   // ─── Category Content ───────────────────────────────────────────
 
   const renderCategoryContent = (group: (typeof grouped)[number]) => {
-    const hasNamedSubcats = group.subcatGroups.some((sg) => sg.subcategory !== "");
-    const subcatIds = group.subcatGroups.map((sg) => sg.subcategory || "__none__");
+    const hasNamedSubcats = group.layoutEntries.some((entry) => entry.kind === "subcategory");
+    const layoutIds = group.layoutEntries.map((entry) => entry.id);
 
     // If there's only one group and it has no subcategory, just render items directly
-    if (group.subcatGroups.length === 1 && !group.subcatGroups[0].subcategory) {
-      return renderItemList(group.subcatGroups[0].items);
+    if (!hasNamedSubcats) {
+      return renderItemList(group.allItems);
     }
 
-    const renderSubcatItems = () =>
-      group.subcatGroups.map((subGroup) => {
-        const subKey = `${group.category}::${subGroup.subcategory}`;
-        const id = subGroup.subcategory || "__none__";
+    const renderLayoutEntries = () =>
+      group.layoutEntries.map((entry) => {
+        if (entry.kind === "item") {
+          const itemBlock = canReorderItems ? (
+            <SortableItemCard key={entry.id} id={entry.id}>
+              {({ dragHandleRef, dragHandleProps, isDragging }) =>
+                renderItemContent(entry.item, dragHandleRef, dragHandleProps, isDragging)
+              }
+            </SortableItemCard>
+          ) : (
+            <div key={entry.id}>{renderItemContent(entry.item)}</div>
+          );
+
+          return (
+            <div key={entry.id} className="mb-3">
+              {itemBlock}
+            </div>
+          );
+        }
+
+        const subKey = `${group.category}::${entry.subcategory}`;
+        const id = entry.id;
 
         // Items block (used inside both named and unnamed subcategories)
-        const itemsBlock = renderItemList(subGroup.items);
-
-        // No subcategory name — render items flat
-        if (!subGroup.subcategory) {
-          return <div key="__none__" className="mb-3">{itemsBlock}</div>;
-        }
+        const itemsBlock = renderItemList(entry.items);
 
         // Named subcategory — indented block with different shade
         const inner = (
@@ -823,7 +958,7 @@ export default function MenuTab({ addToast }: Props) {
             <SortableSubcategorySection
               key={id}
               id={id}
-              label={subGroup.label}
+              label={categoryLabel(entry.subcategory)}
               collapsed={collapsedSubcategories.has(subKey)}
               onToggleCollapse={() => toggleSubcategoryCollapse(subKey)}
             >
@@ -840,7 +975,7 @@ export default function MenuTab({ addToast }: Props) {
               className="flex items-center gap-1.5 mb-2 ml-1 group"
             >
               <h4 className="text-sm font-bold text-stone-500 dark:text-stone-400 group-hover:text-stone-700 dark:group-hover:text-stone-300 uppercase tracking-wider transition-colors">
-                {subGroup.label}
+                {categoryLabel(entry.subcategory)}
               </h4>
               {collapsedSubcategories.has(subKey) ? (
                 <ChevronDown className="w-3.5 h-3.5 text-stone-400" />
@@ -872,16 +1007,16 @@ export default function MenuTab({ addToast }: Props) {
           sensors={sensors}
           collisionDetection={closestCenter}
           modifiers={[restrictToVerticalAxis]}
-          onDragEnd={(e) => handleSubcategoryDragEnd(e, group.category, subcatIds)}
+          onDragEnd={(e) => handleCategoryLayoutDragEnd(e, group.category, group.layoutEntries)}
         >
-          <SortableContext items={subcatIds} strategy={verticalListSortingStrategy}>
-            {renderSubcatItems()}
+          <SortableContext items={layoutIds} strategy={verticalListSortingStrategy}>
+            {renderLayoutEntries()}
           </SortableContext>
         </DndContext>
       );
     }
 
-    return <>{renderSubcatItems()}</>;
+    return <>{renderLayoutEntries()}</>;
   };
 
   // ─── Render ─────────────────────────────────────────────────────
@@ -921,7 +1056,15 @@ export default function MenuTab({ addToast }: Props) {
             </div>
           </button>
           <button
-            onClick={() => setEditMode(!editMode)}
+            onClick={() => {
+              if (syncingEditMode || saving || switchingPreset) return;
+              if (editMode) {
+                void exitEditMode();
+              } else {
+                void enterEditMode();
+              }
+            }}
+            disabled={syncingEditMode || saving || switchingPreset}
             className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all ${
               editMode
                 ? "bg-brand-orange text-white shadow"
@@ -929,10 +1072,11 @@ export default function MenuTab({ addToast }: Props) {
             }`}
           >
             {editMode ? <Pencil className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
-            {editMode ? "Editing" : "Edit"}
+            {saving ? "Saving item..." : syncingEditMode ? "Saving..." : editMode ? "Editing" : "Edit"}
           </button>
           <button
-            onClick={() => { setEditMode(true); openAdd(); }}
+            onClick={() => { void enterEditMode(openAdd); }}
+            disabled={syncingEditMode || saving || switchingPreset}
             className="flex items-center gap-1 px-4 py-2 rounded-xl bg-brand-olive text-white text-sm font-bold shadow hover:shadow-md transition-all"
           >
             <Plus className="w-4 h-4" /> Add Item
@@ -940,7 +1084,72 @@ export default function MenuTab({ addToast }: Props) {
         </div>
       </div>
 
-      {/* Search + Filter bar */}
+      {editMode && (
+        <div className="mb-4 p-3 rounded-2xl bg-stone-50 dark:bg-stone-800/50 border border-stone-200 dark:border-stone-700">
+          <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">
+              Menu Presets
+            </h3>
+            <span className="text-[11px] text-stone-400">
+              Preset changes stay in draft until you leave edit mode
+            </span>
+          </div>
+          <div className="flex gap-2 flex-wrap mb-3">
+            {presetState.presets.map((preset) => (
+              <button
+                key={preset.index}
+                onClick={() => { void handleActivatePreset(preset.index); }}
+                disabled={switchingPreset || syncingEditMode || saving}
+                className={`px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                  preset.index === presetState.active_preset_index
+                    ? "bg-brand-orange text-white shadow"
+                    : "bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-300 border border-stone-200 dark:border-stone-700"
+                }`}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center justify-end">
+            <button
+              onClick={() => setShowPresetNaming((prev) => !prev)}
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 text-sm font-medium text-stone-600 dark:text-stone-300"
+            >
+              <Edit3 className="w-4 h-4" />
+              {showPresetNaming ? "Close title editor" : "Edit title"}
+            </button>
+          </div>
+          <AnimatePresence initial={false}>
+            {showPresetNaming && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <div className="flex gap-2 flex-wrap pt-3">
+                  <input
+                    type="text"
+                    value={presetTitleInput}
+                    onChange={(e) => setPresetTitleInput(e.target.value)}
+                    placeholder={`Title for Menu ${presetState.active_preset_index}`}
+                    className="flex-1 min-w-[180px] px-4 py-2 rounded-xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 text-sm text-stone-800 dark:text-stone-200 outline-none focus:ring-2 focus:ring-brand-olive"
+                  />
+                  <button
+                    onClick={() => { void handleSavePresetTitle(); }}
+                    disabled={savingPresetTitle}
+                    className="px-4 py-2 rounded-xl bg-brand-olive text-white text-sm font-bold shadow hover:shadow-md transition-all disabled:opacity-50"
+                  >
+                    {savingPresetTitle ? "Saving..." : "Save Title"}
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center gap-2 mb-2">
         <div className="relative flex-1 min-w-[140px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />

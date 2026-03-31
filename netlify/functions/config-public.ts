@@ -9,5 +9,6 @@ export default async (req: Request, context: Context) => {
   const config = await getConfig();
   return Response.json({
     in_store_ordering_enabled: config.in_store_ordering_enabled ?? false,
+    menu_editing_active: config.menu_editing_active ?? false,
   });
 };

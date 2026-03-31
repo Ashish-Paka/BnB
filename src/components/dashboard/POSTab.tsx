@@ -188,6 +188,26 @@ export default function POSTab({ onOrderCreated, addToast }: Props) {
   const formatPrice = (cents: number) =>
     `$${(cents / 100).toFixed(cents % 100 === 0 ? 0 : 2)}`;
 
+  const getFittedNameClass = (value: string) => {
+    const length = value.trim().length;
+    if (length > 80) return "text-[11px]";
+    if (length > 45) return "text-xs";
+    return "text-sm";
+  };
+
+  const getFittedOptionClass = (value: string) => {
+    const length = value.trim().length;
+    if (length > 110) return "text-[9px]";
+    if (length > 60) return "text-[10px]";
+    return "text-[11px]";
+  };
+
+  const getItemOptionSummary = (item: MenuItem) =>
+    item.options?.map((option) => option.name).join(" · ") ?? "";
+
+  const getSelectedOptionSummary = (options: Record<string, string>) =>
+    Object.values(options).join(", ");
+
   return (
     <div className="grid md:grid-cols-5 gap-4">
       {/* Left: Menu Grid */}
@@ -208,13 +228,13 @@ export default function POSTab({ onOrderCreated, addToast }: Props) {
           ))}
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 auto-rows-fr">
           {filteredMenu.map((item) => (
             <motion.button
               key={item.id}
               whileTap={{ scale: 0.97 }}
               onClick={() => handleSelectItem(item)}
-              className="p-3 rounded-xl bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 text-left hover:shadow-md transition-all overflow-hidden"
+              className="h-full p-3 rounded-xl bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 text-left hover:shadow-md transition-all flex flex-col"
             >
               {item.has_image && (
                 <img
@@ -224,17 +244,23 @@ export default function POSTab({ onOrderCreated, addToast }: Props) {
                   loading="lazy"
                 />
               )}
-              <p className="font-bold text-sm text-stone-800 dark:text-stone-200 truncate">
-                {item.name}
-              </p>
-              <p className="text-brand-olive font-bold text-sm mt-1">
+              <div className="flex-1 flex flex-col">
+                <p
+                  className={`font-bold leading-tight text-stone-800 dark:text-stone-200 break-words whitespace-normal text-balance ${getFittedNameClass(item.name)}`}
+                >
+                  {item.name}
+                </p>
+                {item.options && item.options.length > 0 && (
+                  <p
+                    className={`mt-1 text-stone-400 leading-tight break-words whitespace-normal ${getFittedOptionClass(getItemOptionSummary(item))}`}
+                  >
+                    {getItemOptionSummary(item)}
+                  </p>
+                )}
+              </div>
+              <p className="text-brand-olive font-bold text-sm mt-2">
                 {formatPrice(item.base_price_cents)}
               </p>
-              {item.options && item.options.length > 0 && (
-                <p className="text-[10px] text-stone-400 mt-0.5 truncate">
-                  {item.options.map((o) => o.name).join(" · ")}
-                </p>
-              )}
             </motion.button>
           ))}
         </div>
@@ -340,38 +366,44 @@ export default function POSTab({ onOrderCreated, addToast }: Props) {
               {cart.map((ci, idx) => (
                 <div
                   key={idx}
-                  className="flex items-center justify-between gap-2"
+                  className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-2 items-start"
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-stone-800 dark:text-stone-200 truncate">
+                    <p
+                      className={`font-medium leading-tight text-stone-800 dark:text-stone-200 break-words whitespace-normal text-balance ${getFittedNameClass(ci.menuItem.name)}`}
+                    >
                       {ci.menuItem.name}
                     </p>
                     {Object.keys(ci.options).length > 0 && (
-                      <p className="text-xs text-stone-400 truncate">
-                        {Object.values(ci.options).join(", ")}
+                      <p
+                        className={`mt-1 text-stone-400 leading-tight break-words whitespace-normal ${getFittedOptionClass(getSelectedOptionSummary(ci.options))}`}
+                      >
+                        {getSelectedOptionSummary(ci.options)}
                       </p>
                     )}
                   </div>
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => updateCartQuantity(idx, ci.quantity - 1)}
-                      className="w-6 h-6 rounded-full bg-stone-100 dark:bg-stone-800 flex items-center justify-center text-stone-600 dark:text-stone-400"
-                    >
-                      <Minus className="w-3 h-3" />
-                    </button>
-                    <span className="w-5 text-center text-xs font-bold text-stone-800 dark:text-stone-200">
-                      {ci.quantity}
+                  <div className="flex flex-col items-end gap-1.5">
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => updateCartQuantity(idx, ci.quantity - 1)}
+                        className="w-6 h-6 rounded-full bg-stone-100 dark:bg-stone-800 flex items-center justify-center text-stone-600 dark:text-stone-400"
+                      >
+                        <Minus className="w-3 h-3" />
+                      </button>
+                      <span className="min-w-5 text-center text-xs font-bold text-stone-800 dark:text-stone-200">
+                        {ci.quantity}
+                      </span>
+                      <button
+                        onClick={() => updateCartQuantity(idx, ci.quantity + 1)}
+                        className="w-6 h-6 rounded-full bg-stone-100 dark:bg-stone-800 flex items-center justify-center text-stone-600 dark:text-stone-400"
+                      >
+                        <Plus className="w-3 h-3" />
+                      </button>
+                    </div>
+                    <span className="text-sm font-bold text-stone-800 dark:text-stone-200 whitespace-nowrap text-right">
+                      {formatPrice(ci.unitCents * ci.quantity)}
                     </span>
-                    <button
-                      onClick={() => updateCartQuantity(idx, ci.quantity + 1)}
-                      className="w-6 h-6 rounded-full bg-stone-100 dark:bg-stone-800 flex items-center justify-center text-stone-600 dark:text-stone-400"
-                    >
-                      <Plus className="w-3 h-3" />
-                    </button>
                   </div>
-                  <span className="text-sm font-bold text-stone-800 dark:text-stone-200 w-14 text-right">
-                    {formatPrice(ci.unitCents * ci.quantity)}
-                  </span>
                 </div>
               ))}
             </div>

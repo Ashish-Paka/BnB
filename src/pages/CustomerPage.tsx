@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import logo from "../assets/logo.webp";
 
@@ -114,17 +114,31 @@ export default function CustomerPage() {
     sessionStorage.setItem("bnb_active_order", orderId);
   };
 
-  useEffect(() => {
+  const refreshPublicConfig = useCallback(() => {
     fetchPublicConfig()
       .then((c) => setOrderingEnabled(c.in_store_ordering_enabled))
       .catch(() => {});
-    const id = setInterval(() => {
-      fetchPublicConfig()
-        .then((c) => setOrderingEnabled(c.in_store_ordering_enabled))
-        .catch(() => {});
-    }, 10_000);
-    return () => clearInterval(id);
   }, []);
+
+  useEffect(() => {
+    const handleVisibilityRefresh = () => {
+      if (document.visibilityState === "visible") {
+        refreshPublicConfig();
+      }
+    };
+
+    refreshPublicConfig();
+    const id = setInterval(() => {
+      refreshPublicConfig();
+    }, 3_000);
+    window.addEventListener("focus", refreshPublicConfig);
+    document.addEventListener("visibilitychange", handleVisibilityRefresh);
+    return () => {
+      clearInterval(id);
+      window.removeEventListener("focus", refreshPublicConfig);
+      document.removeEventListener("visibilitychange", handleVisibilityRefresh);
+    };
+  }, [refreshPublicConfig]);
 
   useEffect(() => {
     const preloadImages = async () => {
@@ -166,22 +180,19 @@ export default function CustomerPage() {
       return;
     }
 
-    // On theme toggle: add transition class FIRST, then toggle dark on next frame
-    // so the browser registers transitions before any colors change
+    // On theme toggle: add transition class and toggle dark class synchronously
+    // so the browser batches both changes in a single style recalc — no intermediate frame
     document.documentElement.classList.add("theme-transitioning");
     localStorage.setItem("theme", isDarkMode ? "dark" : "light");
-    const rafId = requestAnimationFrame(() => {
-      if (isDarkMode) {
-        document.documentElement.classList.add("dark");
-      } else {
-        document.documentElement.classList.remove("dark");
-      }
-    });
+    if (isDarkMode) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
     const timeout = setTimeout(() => {
       document.documentElement.classList.remove("theme-transitioning");
     }, 450);
     return () => {
-      cancelAnimationFrame(rafId);
       clearTimeout(timeout);
     };
   }, [isDarkMode]);

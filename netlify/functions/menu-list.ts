@@ -1,7 +1,8 @@
 import type { Context } from "@netlify/functions";
-import { getMenu, setMenu } from "./_shared/store.js";
+import { getConfig, getMenu, setMenu, getPublishedMenu, setPublishedMenu } from "./_shared/store.js";
 import { requireOwner } from "./_shared/auth.js";
 import type { MenuItem } from "./_shared/types.js";
+import { normalizeMenuSortOrders } from "./_shared/menu-sort.js";
 
 const SEED_MENU: MenuItem[] = [
   {
@@ -93,6 +94,9 @@ export default async (req: Request, context: Context) => {
     return new Response("Method not allowed", { status: 405 });
   }
 
+  const url = new URL(req.url);
+  const includeDeleted = url.searchParams.get("include_deleted") === "true";
+  const snapshot = url.searchParams.get("snapshot");
   let menu = await getMenu();
 
   // Seed menu if empty
@@ -101,18 +105,44 @@ export default async (req: Request, context: Context) => {
     await setMenu(menu);
   }
 
+  const normalizedDraft = normalizeMenuSortOrders(menu);
+  menu = normalizedDraft.items;
+  if (normalizedDraft.changed) {
+    await setMenu(menu);
+  }
+
   // Sort by sort_order
   menu.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
 
-  const url = new URL(req.url);
-  const includeDeleted = url.searchParams.get("include_deleted") === "true";
-
-  // If authenticated owner, return all non-deleted items (or all if include_deleted)
   const headers = Object.fromEntries(req.headers.entries());
-  if (requireOwner(headers)) {
-    if (includeDeleted) return Response.json(menu);
-    return Response.json(menu.filter((item) => !item.deleted_at));
+  const isOwner = requireOwner(headers);
+
+  let publishedMenu = await getPublishedMenu();
+  if (!publishedMenu) {
+    const config = await getConfig();
+    if (!config.menu_editing_active) {
+      publishedMenu = menu;
+      await setPublishedMenu(menu);
+    } else {
+      publishedMenu = [];
+    }
   }
-  const available = menu.filter((item) => item.is_available && !item.deleted_at);
+
+  if (publishedMenu) {
+    const normalizedPublished = normalizeMenuSortOrders(publishedMenu);
+    publishedMenu = normalizedPublished.items;
+    if (normalizedPublished.changed) {
+      await setPublishedMenu(publishedMenu);
+    }
+  }
+
+  // If authenticated owner, return either the draft snapshot or the published snapshot.
+  if (isOwner) {
+    const ownerMenu = snapshot === "published" ? publishedMenu : menu;
+    if (includeDeleted) return Response.json(ownerMenu);
+    return Response.json(ownerMenu.filter((item) => !item.deleted_at));
+  }
+
+  const available = publishedMenu.filter((item) => item.is_available && !item.deleted_at);
   return Response.json(available);
 };

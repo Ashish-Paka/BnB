@@ -1,5 +1,13 @@
 import { getStore } from "@netlify/blobs";
-import type { MenuItem, Customer, Order, Visit, AppConfig, MenuOrdering } from "./types.js";
+import type {
+  MenuItem,
+  Customer,
+  Order,
+  Visit,
+  AppConfig,
+  MenuOrdering,
+  MenuPresetStore,
+} from "./types.js";
 
 const STORE_NAME = "bnb-data";
 
@@ -27,10 +35,18 @@ async function setJSON<T>(key: string, data: T): Promise<void> {
 // Menu
 export const getMenu = () => getJSON<MenuItem[]>("menu", []);
 export const setMenu = (items: MenuItem[]) => setJSON("menu", items);
+export const getPublishedMenu = () => getJSON<MenuItem[] | null>("menu-published", null);
+export const setPublishedMenu = (items: MenuItem[]) => setJSON("menu-published", items);
 
 // Menu ordering
 export const getMenuOrdering = () => getJSON<MenuOrdering>("menu-ordering", { category_order: [], subcategory_order: {} });
 export const setMenuOrdering = (ordering: MenuOrdering) => setJSON("menu-ordering", ordering);
+export const getPublishedMenuOrdering = () =>
+  getJSON<MenuOrdering | null>("menu-ordering-published", null);
+export const setPublishedMenuOrdering = (ordering: MenuOrdering) =>
+  setJSON("menu-ordering-published", ordering);
+export const getMenuPresetStore = () => getJSON<MenuPresetStore | null>("menu-presets", null);
+export const setMenuPresetStore = (store: MenuPresetStore) => setJSON("menu-presets", store);
 
 // Customers
 export const getCustomers = () => getJSON<Customer[]>("customers", []);
@@ -52,6 +68,7 @@ const DEFAULT_CONFIG: AppConfig = {
   owner_password_hash: "",
   unknown_customer_seq: 0,
   in_store_ordering_enabled: false,
+  menu_editing_active: false,
   google_accounts: [],
 };
 export const getConfig = () => getJSON<AppConfig>("config", DEFAULT_CONFIG);
@@ -77,6 +94,18 @@ export async function setMenuImage(itemId: string, data: ArrayBuffer, contentTyp
 export async function deleteMenuImage(itemId: string): Promise<void> {
   const s = store();
   try { await s.delete(`menu-image-${itemId}`); } catch {}
+}
+
+export async function getPublishedMenuImage(itemId: string): Promise<{ data: ArrayBuffer; contentType: string } | null> {
+  const s = store();
+  const result = await s.getWithMetadata(`menu-image-published-${itemId}`, { type: "arrayBuffer" });
+  if (!result || !result.data) return null;
+  return { data: result.data as ArrayBuffer, contentType: (result.metadata as any)?.content_type || "image/webp" };
+}
+
+export async function setPublishedMenuImage(itemId: string, data: ArrayBuffer, contentType: string): Promise<void> {
+  const s = store();
+  await s.set(`menu-image-published-${itemId}`, new Uint8Array(data), { metadata: { content_type: contentType } });
 }
 
 /** Migrate single owner_google_email → google_accounts array */

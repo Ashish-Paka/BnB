@@ -28,5 +28,9 @@ export default async (req: Request, context: Context) => {
     orders = orders.filter((o) => !o.deleted_at);
   }
 
+  orders.sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
+
   return Response.json(orders);
 };

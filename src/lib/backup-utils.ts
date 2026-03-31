@@ -24,7 +24,14 @@ export async function generateBackupZip(data: any): Promise<Blob> {
   const JSZip = (await import("jszip")).default;
   const zip = new JSZip();
 
+  zip.file("backup.json", JSON.stringify(data, null, 2));
   if (data.menu) zip.file("menu.csv", flattenToCSV(data.menu));
+  if (data.menu_ordering) zip.file("menu-ordering.json", JSON.stringify(data.menu_ordering, null, 2));
+  if (data.published_menu) zip.file("published-menu.csv", flattenToCSV(data.published_menu));
+  if (data.published_menu_ordering) {
+    zip.file("published-menu-ordering.json", JSON.stringify(data.published_menu_ordering, null, 2));
+  }
+  if (data.menu_presets) zip.file("menu-presets.json", JSON.stringify(data.menu_presets, null, 2));
   if (data.customers) zip.file("customers.csv", flattenToCSV(data.customers));
   if (data.orders) zip.file("orders.csv", flattenToCSV(data.orders));
   if (data.visits) zip.file("visits.csv", flattenToCSV(data.visits));
@@ -40,8 +47,37 @@ export async function generateBackupZip(data: any): Promise<Blob> {
       }
     }
   }
+  if (data.published_images) {
+    const imgFolder = zip.folder("published-images");
+    for (const [itemId, imgData] of Object.entries(data.published_images) as [string, any][]) {
+      if (imgData?.data) {
+        const ext = imgData.content_type?.includes("jpeg") ? "jpg" : "webp";
+        imgFolder?.file(`${itemId}.${ext}`, imgData.data, { base64: true });
+      }
+    }
+  }
 
   return zip.generateAsync({ type: "blob" });
+}
+
+/**
+ * Read a backup from a JSON file or from a ZIP containing backup.json.
+ */
+export async function parseBackupFile(file: File): Promise<any> {
+  const fileName = file.name.toLowerCase();
+  if (fileName.endsWith(".zip")) {
+    const JSZip = (await import("jszip")).default;
+    const zip = await JSZip.loadAsync(await file.arrayBuffer());
+    const backupEntry = Object.values(zip.files).find(
+      (entry) => !entry.dir && /(^|\/)backup\.json$/i.test(entry.name)
+    );
+    if (!backupEntry) {
+      throw new Error("ZIP backup is missing backup.json");
+    }
+    return JSON.parse(await backupEntry.async("text"));
+  }
+
+  return JSON.parse(await file.text());
 }
 
 /**
@@ -76,12 +112,39 @@ export function validateBackupJSON(data: unknown): { valid: boolean; errors: str
   }
   const d = data as any;
   if (d.menu && !Array.isArray(d.menu)) errors.push("menu should be an array");
+  if (d.menu_ordering && (typeof d.menu_ordering !== "object" || Array.isArray(d.menu_ordering))) {
+    errors.push("menu_ordering should be an object");
+  }
+  if (d.published_menu && !Array.isArray(d.published_menu)) errors.push("published_menu should be an array");
+  if (
+    d.published_menu_ordering &&
+    (typeof d.published_menu_ordering !== "object" || Array.isArray(d.published_menu_ordering))
+  ) {
+    errors.push("published_menu_ordering should be an object");
+  }
+  if (d.menu_presets && (typeof d.menu_presets !== "object" || Array.isArray(d.menu_presets))) {
+    errors.push("menu_presets should be an object");
+  }
   if (d.customers && !Array.isArray(d.customers)) errors.push("customers should be an array");
   if (d.orders && !Array.isArray(d.orders)) errors.push("orders should be an array");
   if (d.visits && !Array.isArray(d.visits)) errors.push("visits should be an array");
   if (d.config && (typeof d.config !== "object" || Array.isArray(d.config))) errors.push("config should be an object");
-  if (!d.menu && !d.customers && !d.orders && !d.visits && !d.config) {
-    errors.push("No recognizable data keys found (menu, customers, orders, visits, config)");
+  if (d.images && (typeof d.images !== "object" || Array.isArray(d.images))) errors.push("images should be an object");
+  if (d.published_images && (typeof d.published_images !== "object" || Array.isArray(d.published_images))) {
+    errors.push("published_images should be an object");
+  }
+  if (
+    !d.menu &&
+    !d.menu_ordering &&
+    !d.published_menu &&
+    !d.published_menu_ordering &&
+    !d.menu_presets &&
+    !d.customers &&
+    !d.orders &&
+    !d.visits &&
+    !d.config
+  ) {
+    errors.push("No recognizable data keys found");
   }
   return { valid: errors.length === 0, errors };
 }

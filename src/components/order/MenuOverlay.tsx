@@ -1,10 +1,10 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, Plus, Minus, ShoppingBag, User } from "lucide-react";
-import { fetchMenu, createOrder, getMenuImageUrl, fetchMenuOrdering } from "../../lib/api";
+import { fetchPublicMenu, createOrder, getMenuImageUrl, fetchPublicMenuOrdering } from "../../lib/api";
 import { useCart } from "../../contexts/CartContext";
 import type { MenuItem, MenuOrdering } from "../../lib/types";
-import { deriveCategories, deriveSubcategories, categoryLabel } from "../../lib/constants";
+import { deriveCategories, deriveCategoryLayout, categoryLabel } from "../../lib/constants";
 
 interface Props {
   open: boolean;
@@ -27,29 +27,62 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId, 
   const [ordering, setOrdering] = useState<MenuOrdering>({ category_order: [], subcategory_order: {} });
   const cart = useCart();
   const categories = useMemo(() => deriveCategories(menu, ordering.category_order), [menu, ordering]);
+  const orderingRef = useRef(ordering);
+
+  useEffect(() => {
+    orderingRef.current = ordering;
+  }, [ordering]);
+
+  const syncMenuState = useCallback((nextMenu: MenuItem[], nextOrdering: MenuOrdering) => {
+    setMenu(nextMenu);
+    setOrdering(nextOrdering);
+    const cats = deriveCategories(nextMenu, nextOrdering.category_order);
+    setActiveCategory((current) => {
+      if (cats.length === 0) return "";
+      if (!current || !cats.includes(current)) return cats[0];
+      return current;
+    });
+  }, []);
+
+  const refreshMenuState = useCallback(() => {
+    return Promise.all([
+      fetchPublicMenu(),
+      fetchPublicMenuOrdering().catch(() => orderingRef.current),
+    ])
+      .then(([data, ord]) => {
+        syncMenuState(data, ord);
+      })
+      .catch(() => {});
+  }, [syncMenuState]);
 
   useEffect(() => {
     if (!open) return;
     setLoading(true);
     Promise.all([
-      fetchMenu(),
-      fetchMenuOrdering().catch(() => ({ category_order: [], subcategory_order: {} })),
+      fetchPublicMenu(),
+      fetchPublicMenuOrdering().catch(() => ({ category_order: [], subcategory_order: {} })),
     ])
       .then(([data, ord]) => {
-        setMenu(data);
-        setOrdering(ord);
-        const cats = deriveCategories(data, ord.category_order);
-        if (cats.length > 0 && !cats.includes(activeCategory)) {
-          setActiveCategory(cats[0]);
-        }
+        syncMenuState(data, ord);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
+    const handleVisibilityRefresh = () => {
+      if (document.visibilityState === "visible") {
+        void refreshMenuState();
+      }
+    };
     const id = setInterval(() => {
-      fetchMenu().then(setMenu).catch(() => {});
-    }, 10_000);
-    return () => clearInterval(id);
-  }, [open]);
+      void refreshMenuState();
+    }, 3_000);
+    window.addEventListener("focus", refreshMenuState);
+    document.addEventListener("visibilitychange", handleVisibilityRefresh);
+    return () => {
+      clearInterval(id);
+      window.removeEventListener("focus", refreshMenuState);
+      document.removeEventListener("visibilitychange", handleVisibilityRefresh);
+    };
+  }, [open, refreshMenuState, syncMenuState]);
 
   // Items for the active category, sorted by sort_order, grouped by subcategory
   const categoryItems = useMemo(() => {
@@ -59,13 +92,8 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId, 
     return items;
   }, [menu, activeCategory]);
 
-  const subcatGroups = useMemo(() => {
-    const subcats = deriveSubcategories(categoryItems, activeCategory, ordering.subcategory_order[activeCategory]);
-    return subcats.map((sub) => ({
-      subcategory: sub,
-      label: sub ? categoryLabel(sub) : "",
-      items: categoryItems.filter((i) => (i.subcategory || "") === sub),
-    })).filter((g) => g.items.length > 0);
+  const layoutEntries = useMemo(() => {
+    return deriveCategoryLayout(categoryItems, activeCategory, ordering.subcategory_order[activeCategory]);
   }, [categoryItems, activeCategory, ordering]);
 
   // Always open modal so users can see full description + image
@@ -199,10 +227,10 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId, 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[200] bg-[var(--bg-color)] overflow-y-auto"
+      className="fixed inset-0 z-[200] bg-[var(--bg-color)] overflow-y-auto overscroll-y-contain"
     >
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-[var(--bg-color-95)] backdrop-blur-md border-b border-stone-300 dark:border-stone-700 px-4 py-3 flex items-center justify-between">
+      <div className="sticky top-0 z-10 bg-[var(--bg-color-95)] backdrop-blur-md border-b border-stone-300 dark:border-stone-700 px-4 py-3 flex items-center justify-between will-change-transform">
         <h2 className="font-serif text-2xl font-black text-stone-800 dark:text-stone-200">
           Menu
         </h2>
@@ -229,7 +257,7 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId, 
       </div>
 
       {/* Category tabs */}
-      <div className="px-4 py-3 flex gap-2 overflow-x-auto">
+      <div className="px-4 py-3 flex gap-2 overflow-x-auto overscroll-x-contain">
         {categories.map((cat) => (
           <button
             key={cat}
@@ -245,31 +273,37 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId, 
         ))}
       </div>
 
-      {/* Menu items grouped by subcategory */}
+      {/* Menu items in the saved mixed layout */}
       <div className="px-4 pb-32">
         {loading ? (
           <div className="text-center py-12 text-stone-400">Loading menu...</div>
         ) : (
           <div className="mt-3 space-y-5">
-            {subcatGroups.map((group) => (
-              <div key={group.subcategory}>
+            {layoutEntries.map((entry) => (
+              <div key={entry.id}>
+                {entry.kind === "item" ? (
+                  renderItemCard(entry.item)
+                ) : (
+                  <>
                 {/* Subcategory header */}
-                {group.subcategory && (
+                {entry.subcategory && (
                   <h3 className="text-sm font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider mb-2.5 px-1">
-                    {group.label}
+                    {categoryLabel(entry.subcategory)}
                   </h3>
                 )}
                 {/* Items — indent subcategory items with a subtle left accent */}
-                {group.subcategory ? (
+                {entry.subcategory ? (
                   <div className="ml-2 pl-3 border-l-2 border-brand-olive/20 dark:border-brand-olive/15">
                     <div className="grid gap-3">
-                      {group.items.map((item) => renderItemCard(item))}
+                      {entry.items.map((item) => renderItemCard(item))}
                     </div>
                   </div>
                 ) : (
                   <div className="grid gap-3">
-                    {group.items.map((item) => renderItemCard(item))}
+                    {entry.items.map((item) => renderItemCard(item))}
                   </div>
+                )}
+                  </>
                 )}
               </div>
             ))}
@@ -293,7 +327,7 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId, 
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full sm:max-w-lg bg-[var(--bg-color)] rounded-t-3xl p-6 shadow-2xl max-h-[85dvh] overflow-y-auto"
+              className="w-full sm:max-w-lg bg-[var(--bg-color)] rounded-t-3xl p-6 shadow-2xl max-h-[85dvh] overflow-y-auto overscroll-y-contain"
             >
               {/* Item image in modal */}
               {selectedItem.has_image && (
@@ -374,7 +408,7 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId, 
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full sm:max-w-lg bg-[var(--bg-color)] rounded-t-3xl p-6 shadow-2xl max-h-[80dvh] overflow-y-auto"
+              className="w-full sm:max-w-lg bg-[var(--bg-color)] rounded-t-3xl p-6 shadow-2xl max-h-[80dvh] overflow-y-auto overscroll-y-contain"
             >
               {orderPlaced ? (
                 <div className="text-center py-8">

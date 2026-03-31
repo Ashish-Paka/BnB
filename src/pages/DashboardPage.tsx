@@ -16,8 +16,10 @@ import {
   ChevronUp,
   Moon,
   Sun,
+  Search,
+  SlidersHorizontal,
 } from "lucide-react";
-import { verifyAuth, fetchOrders, updateOrder, deleteOrder, restoreOrder, fetchAllOrders, permanentlyDeleteOrder } from "../lib/api";
+import { verifyAuth, fetchOrders, updateOrder, deleteOrder, restoreOrder, fetchAllOrders, permanentlyDeleteOrder, exportBackupOnline, fetchBackupStatus } from "../lib/api";
 import type { Order } from "../lib/types";
 import { ORDER_STATUS_LABELS } from "../lib/constants";
 import DashboardLoginPage from "./DashboardLoginPage";
@@ -29,6 +31,39 @@ import OTPTab from "../components/dashboard/OTPTab";
 import SettingsTab from "../components/dashboard/SettingsTab";
 
 type Tab = "otp" | "orders" | "pos" | "customers" | "menu" | "settings";
+
+type OrderSourceFilter = "all" | "customer" | "owner";
+type OrderStatusFilter =
+  | "all"
+  | "active"
+  | "pending"
+  | "preparing"
+  | "ready"
+  | "completed"
+  | "cancelled";
+type OrderDateFilter = "all" | "today" | "last7" | "last30";
+const ACTIVE_ORDER_STATUSES = new Set<Order["status"]>(["pending", "preparing", "ready"]);
+
+function sortOrdersByDate(orders: Order[]): Order[] {
+  return [...orders].sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
+}
+
+function matchesDateFilter(order: Order, filter: OrderDateFilter): boolean {
+  if (filter === "all") return true;
+  const createdAt = new Date(order.created_at);
+  const now = new Date();
+
+  if (filter === "today") {
+    return createdAt.toDateString() === now.toDateString();
+  }
+
+  const days = filter === "last7" ? 7 : 30;
+  const cutoff = new Date(now);
+  cutoff.setDate(cutoff.getDate() - days);
+  return createdAt >= cutoff;
+}
 
 export default function DashboardPage() {
   const [authed, setAuthed] = useState(false);
@@ -60,21 +95,41 @@ export default function DashboardPage() {
     }
     document.documentElement.classList.add("theme-transitioning");
     localStorage.setItem("theme", isDarkMode ? "dark" : "light");
-    const rafId = requestAnimationFrame(() => {
-      if (isDarkMode) {
-        document.documentElement.classList.add("dark");
-      } else {
-        document.documentElement.classList.remove("dark");
-      }
-    });
+    if (isDarkMode) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
     const timeout = setTimeout(() => {
       document.documentElement.classList.remove("theme-transitioning");
     }, 450);
     return () => {
-      cancelAnimationFrame(rafId);
       clearTimeout(timeout);
     };
   }, [isDarkMode]);
+
+  // Auto-backup state (lives here so it persists across tab switches)
+  const [lastOnlineBackup, setLastOnlineBackup] = useState<string | null>(null);
+
+  // Auto-backup: runs as long as dashboard is open, regardless of active tab
+  useEffect(() => {
+    if (!authed) return;
+
+    fetchBackupStatus()
+      .then((s) => { if (s.exported_at) setLastOnlineBackup(s.exported_at); })
+      .catch(() => {});
+
+    const runAutoBackup = async () => {
+      try {
+        await exportBackupOnline();
+        setLastOnlineBackup(new Date().toISOString());
+      } catch {}
+    };
+
+    const timeout = setTimeout(runAutoBackup, 5000);
+    const interval = setInterval(runAutoBackup, 1800000); // 30 minutes
+    return () => { clearTimeout(timeout); clearInterval(interval); };
+  }, [authed]);
 
   // Orders data
   const [orders, setOrders] = useState<Order[]>([]);
@@ -84,6 +139,11 @@ export default function DashboardPage() {
   // Order detail view
   const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
   const [showDeleted, setShowDeleted] = useState(false);
+  const [orderSearch, setOrderSearch] = useState("");
+  const [orderSourceFilter, setOrderSourceFilter] = useState<OrderSourceFilter>("all");
+  const [orderStatusFilter, setOrderStatusFilter] = useState<OrderStatusFilter>("all");
+  const [orderDateFilter, setOrderDateFilter] = useState<OrderDateFilter>("all");
+  const [showOrderFilters, setShowOrderFilters] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("owner_token");
@@ -127,7 +187,7 @@ export default function DashboardPage() {
             addToast("New order received!", "info");
           }
           prevPendingRef.current = newPending;
-          setOrders(newOrders);
+          setOrders(sortOrdersByDate(newOrders));
         })
         .catch(() => {});
     load();
@@ -138,7 +198,7 @@ export default function DashboardPage() {
   // Load all orders (including deleted) when deleted section is opened
   useEffect(() => {
     if (showDeleted && authed) {
-      fetchAllOrders().then(setAllOrders).catch(() => {});
+      fetchAllOrders().then((data) => setAllOrders(sortOrdersByDate(data))).catch(() => {});
     }
   }, [showDeleted, authed]);
 
@@ -149,9 +209,9 @@ export default function DashboardPage() {
     try {
       await updateOrder(orderId, { status: newStatus });
       setOrders((prev) =>
-        prev.map((o) =>
+        sortOrdersByDate(prev.map((o) =>
           o.id === orderId ? { ...o, status: newStatus } : o
-        )
+        ))
       );
       addToast(`Order updated to ${newStatus}`, "success");
     } catch {
@@ -164,9 +224,9 @@ export default function DashboardPage() {
       await deleteOrder(orderId);
       setOrders((prev) => prev.filter((o) => o.id !== orderId));
       setAllOrders((prev) =>
-        prev.map((o) =>
+        sortOrdersByDate(prev.map((o) =>
           o.id === orderId ? { ...o, deleted_at: new Date().toISOString() } : o
-        )
+        ))
       );
       addToast("Order removed from list", "success");
     } catch {
@@ -178,11 +238,11 @@ export default function DashboardPage() {
     try {
       const restored = await restoreOrder(orderId);
       setAllOrders((prev) =>
-        prev.map((o) =>
+        sortOrdersByDate(prev.map((o) =>
           o.id === orderId ? { ...o, deleted_at: null } : o
-        )
+        ))
       );
-      setOrders((prev) => [...prev, restored].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+      setOrders((prev) => sortOrdersByDate([...prev, restored]));
       addToast("Order restored", "success");
     } catch {
       addToast("Failed to restore order", "error");
@@ -227,13 +287,57 @@ export default function DashboardPage() {
     return d.toLocaleDateString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
   };
 
+  const normalizedOrderSearch = orderSearch.trim().toLowerCase();
+  const hasOrderFilters =
+    normalizedOrderSearch.length > 0 ||
+    orderSourceFilter !== "all" ||
+    orderStatusFilter !== "all" ||
+    orderDateFilter !== "all";
+
+  const orderMatchesFilters = (order: Order, includeDeleted = false) => {
+    if (!includeDeleted && order.deleted_at) return false;
+    if (includeDeleted && !order.deleted_at) return false;
+
+    if (normalizedOrderSearch) {
+      const searchFields = [
+        order.customer_name,
+        order.id,
+        order.notes,
+        order.created_by === "owner" ? "pos" : "online",
+        ...order.items.flatMap((item) => [
+          item.item_name,
+          ...Object.values(item.options),
+        ]),
+      ].filter((value): value is string => typeof value === "string" && value.length > 0)
+        .map((value) => value.toLowerCase());
+
+      if (!searchFields.some((value) => value.includes(normalizedOrderSearch))) {
+        return false;
+      }
+    }
+
+    if (orderSourceFilter !== "all" && order.created_by !== orderSourceFilter) {
+      return false;
+    }
+
+    if (orderStatusFilter !== "all") {
+      if (orderStatusFilter === "active") {
+        if (!ACTIVE_ORDER_STATUSES.has(order.status)) return false;
+      } else if (order.status !== orderStatusFilter) {
+        return false;
+      }
+    }
+
+    return matchesDateFilter(order, orderDateFilter);
+  };
+
   const activeOrders = orders.filter(
-    (o) => o.status !== "completed" && o.status !== "cancelled"
+    (o) => ACTIVE_ORDER_STATUSES.has(o.status) && orderMatchesFilters(o)
   );
   const pastOrders = orders.filter(
-    (o) => o.status === "completed" || o.status === "cancelled"
+    (o) => (o.status === "completed" || o.status === "cancelled") && orderMatchesFilters(o)
   );
-  const deletedOrders = allOrders.filter((o) => o.deleted_at);
+  const deletedOrders = allOrders.filter((o) => orderMatchesFilters(o, true));
 
   const tabs: {
     id: Tab;
@@ -433,9 +537,108 @@ export default function DashboardPage() {
         {/* ORDERS TAB */}
         {activeTab === "orders" && (
           <div>
+            <div className="mb-5 space-y-3">
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+                  <input
+                    type="text"
+                    value={orderSearch}
+                    onChange={(e) => setOrderSearch(e.target.value)}
+                    placeholder="Search customer, item, notes, or order ID..."
+                    className="w-full pl-10 pr-4 py-3 rounded-2xl bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 text-stone-800 dark:text-stone-200 shadow-sm outline-none focus:ring-2 focus:ring-brand-orange"
+                  />
+                </div>
+                <button
+                  onClick={() => setShowOrderFilters((prev) => !prev)}
+                  className={`inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border text-sm font-bold transition-colors ${
+                    showOrderFilters || hasOrderFilters
+                      ? "border-brand-orange bg-brand-orange/10 text-brand-orange"
+                      : "border-stone-300 dark:border-stone-700 text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200"
+                  }`}
+                >
+                  <SlidersHorizontal className="w-4 h-4" />
+                  Filters
+                </button>
+              </div>
+
+              <AnimatePresence initial={false}>
+                {showOrderFilters && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="grid gap-3 sm:grid-cols-3 p-4 rounded-2xl bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 shadow-sm">
+                      <label className="text-sm font-medium text-stone-600 dark:text-stone-300">
+                        <span className="block mb-1.5 text-xs font-bold uppercase tracking-wider text-stone-400">Source</span>
+                        <select
+                          value={orderSourceFilter}
+                          onChange={(e) => setOrderSourceFilter(e.target.value as OrderSourceFilter)}
+                          className="w-full px-3 py-2 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-800 dark:text-stone-200 outline-none focus:ring-2 focus:ring-brand-orange"
+                        >
+                          <option value="all">All sources</option>
+                          <option value="customer">Online</option>
+                          <option value="owner">POS</option>
+                        </select>
+                      </label>
+
+                      <label className="text-sm font-medium text-stone-600 dark:text-stone-300">
+                        <span className="block mb-1.5 text-xs font-bold uppercase tracking-wider text-stone-400">Status</span>
+                        <select
+                          value={orderStatusFilter}
+                          onChange={(e) => setOrderStatusFilter(e.target.value as OrderStatusFilter)}
+                          className="w-full px-3 py-2 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-800 dark:text-stone-200 outline-none focus:ring-2 focus:ring-brand-orange"
+                        >
+                          <option value="all">All statuses</option>
+                          <option value="active">Active only</option>
+                          <option value="pending">Pending</option>
+                          <option value="preparing">Preparing</option>
+                          <option value="ready">Ready</option>
+                          <option value="completed">Completed</option>
+                          <option value="cancelled">Cancelled</option>
+                        </select>
+                      </label>
+
+                      <label className="text-sm font-medium text-stone-600 dark:text-stone-300">
+                        <span className="block mb-1.5 text-xs font-bold uppercase tracking-wider text-stone-400">Date</span>
+                        <select
+                          value={orderDateFilter}
+                          onChange={(e) => setOrderDateFilter(e.target.value as OrderDateFilter)}
+                          className="w-full px-3 py-2 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-800 dark:text-stone-200 outline-none focus:ring-2 focus:ring-brand-orange"
+                        >
+                          <option value="all">All time</option>
+                          <option value="today">Today</option>
+                          <option value="last7">Last 7 days</option>
+                          <option value="last30">Last 30 days</option>
+                        </select>
+                      </label>
+
+                      {hasOrderFilters && (
+                        <div className="sm:col-span-3 flex justify-end">
+                          <button
+                            onClick={() => {
+                              setOrderSearch("");
+                              setOrderSourceFilter("all");
+                              setOrderStatusFilter("all");
+                              setOrderDateFilter("all");
+                            }}
+                            className="text-sm font-bold text-brand-orange hover:opacity-80"
+                          >
+                            Clear filters
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
             {activeOrders.length === 0 && (
               <p className="text-center text-stone-400 py-12">
-                No active orders
+                {hasOrderFilters ? "No orders match the current filters" : "No active orders"}
               </p>
             )}
             <div className="grid gap-3">
@@ -546,7 +749,13 @@ export default function DashboardPage() {
         {activeTab === "menu" && <MenuTab addToast={addToast} />}
 
         {/* SETTINGS TAB */}
-        {activeTab === "settings" && <SettingsTab addToast={addToast} />}
+        {activeTab === "settings" && (
+          <SettingsTab
+            addToast={addToast}
+            lastOnlineBackup={lastOnlineBackup}
+            setLastOnlineBackup={setLastOnlineBackup}
+          />
+        )}
       </div>
 
       {/* Order Detail Modal */}

@@ -22,6 +22,32 @@ export interface MenuOrdering {
   subcategory_order: Record<string, string[]>;
 }
 
+export interface MenuPresetImage {
+  data: string;
+  content_type: string;
+}
+
+export interface MenuPreset {
+  index: number;
+  title: string;
+  menu: MenuItem[];
+  menu_ordering: MenuOrdering;
+  published_menu: MenuItem[];
+  published_menu_ordering: MenuOrdering;
+  images: Record<string, MenuPresetImage>;
+  published_images: Record<string, MenuPresetImage>;
+}
+
+export interface MenuPresetStore {
+  active_preset_index: number;
+  presets: MenuPreset[];
+}
+
+export interface BackupArchive {
+  exported_at: string;
+  zip_base64: string;
+}
+
 export interface Customer {
   id: string;
   names: string[];
@@ -77,6 +103,7 @@ export interface AppConfig {
   owner_password_hash: string;
   unknown_customer_seq: number;
   in_store_ordering_enabled: boolean;
+  menu_editing_active?: boolean;
   admin_password_hash?: string;
   google_accounts?: GoogleAccount[];
   /** @deprecated — migrated to google_accounts */

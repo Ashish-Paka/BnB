@@ -1,6 +1,7 @@
 import type { Context } from "@netlify/functions";
 import { requireOwner, extractLoginMethod, isPrimaryOrPassword } from "./_shared/auth.js";
-import { getConfig, ensureMigrated } from "./_shared/store.js";
+import { getBackup, getConfig, ensureMigrated } from "./_shared/store.js";
+import { extractBackupData } from "./_shared/backup-archive.js";
 import { restoreBackupData } from "./_shared/backup-data.js";
 
 export default async (req: Request, _context: Context) => {
@@ -17,12 +18,20 @@ export default async (req: Request, _context: Context) => {
   if (!loginMethod) return new Response("Unauthorized", { status: 401 });
   const config = await ensureMigrated(await getConfig());
   if (!isPrimaryOrPassword(loginMethod, config)) {
-    return Response.json({ error: "Only owner or admin can import data" }, { status: 403 });
+    return Response.json({ error: "Only owner or admin can restore data" }, { status: 403 });
   }
 
-  const body = await req.json();
-  const mode = body.mode || "overwrite";
-  const imported = await restoreBackupData(body, mode);
+  const storedBackup = await getBackup();
+  const backup = await extractBackupData(storedBackup);
+  if (!backup) {
+    return new Response("No restore point available", { status: 404 });
+  }
 
-  return Response.json({ success: true, mode, imported });
+  const imported = await restoreBackupData(backup, "overwrite");
+  return Response.json({
+    success: true,
+    mode: "overwrite",
+    imported,
+    restored_from: storedBackup?.exported_at ?? backup.exported_at ?? null,
+  });
 };

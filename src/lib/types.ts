@@ -22,6 +22,17 @@ export interface MenuOrdering {
   subcategory_order: Record<string, string[]>;
 }
 
+export interface MenuPresetSummary {
+  index: number;
+  title: string;
+  label: string;
+}
+
+export interface MenuPresetState {
+  active_preset_index: number;
+  presets: MenuPresetSummary[];
+}
+
 export interface CartItem {
   menu_item: MenuItem;
   quantity: number;
@@ -84,5 +95,6 @@ export interface AppConfig {
   owner_password_hash: string;
   unknown_customer_seq: number;
   in_store_ordering_enabled: boolean;
+  menu_editing_active?: boolean;
   google_accounts?: GoogleAccount[];
 }
