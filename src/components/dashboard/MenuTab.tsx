@@ -385,19 +385,32 @@ export default function MenuTab({ addToast }: Props) {
   useEffect(() => {
     loadPresetState();
 
-    const loadDashboardState = () =>
+    // Initial load always fetches everything
+    fetchPublicConfig()
+      .then((c) => {
+        setOrderingEnabled(c.in_store_ordering_enabled);
+        const nextEditMode = c.menu_editing_active ?? false;
+        setEditMode(nextEditMode);
+        return loadMenu(nextEditMode);
+      })
+      .catch(() => loadMenu());
+
+    // Polling: only refresh config — skip menu reload to avoid resetting
+    // scroll position and canceling in-progress drag operations.
+    // Menu items only reload when edit mode actually transitions.
+    const id = setInterval(() => {
       fetchPublicConfig()
         .then((c) => {
           setOrderingEnabled(c.in_store_ordering_enabled);
           const nextEditMode = c.menu_editing_active ?? false;
-          setEditMode(nextEditMode);
-          return loadMenu(nextEditMode);
+          setEditMode((prev) => {
+            if (prev !== nextEditMode) {
+              loadMenu(nextEditMode);
+            }
+            return nextEditMode;
+          });
         })
-        .catch(() => loadMenu());
-
-    void loadDashboardState();
-    const id = setInterval(() => {
-      void loadDashboardState();
+        .catch(() => {});
     }, 10_000);
     return () => clearInterval(id);
   }, [loadMenu, loadPresetState]);
