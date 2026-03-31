@@ -40,26 +40,24 @@ export default function FloatingDecorations() {
             transform: `rotate(${t.rotation}deg) scale(${t.scale})`,
           }}
         >
-          <div className="relative">
-            {/* Light mode: dark tinted paws — fades out in dark mode */}
-            <img
-              src="/footprints.gif"
-              alt=""
-              className="w-64 h-64 md:w-80 md:h-80 object-contain opacity-100 dark:opacity-0 transition-opacity duration-400"
-              style={{
-                filter: `sepia(1) saturate(2) hue-rotate(${t.hue}deg) brightness(0.4)`,
-              }}
-            />
-            {/* Dark mode: light tinted paws — fades in during dark mode */}
-            <img
-              src="/footprints.gif"
-              alt=""
-              className="absolute inset-0 w-64 h-64 md:w-80 md:h-80 object-contain opacity-0 dark:opacity-100 transition-opacity duration-400"
-              style={{
-                filter: `invert(1) sepia(1) saturate(1.5) hue-rotate(${t.hue}deg) brightness(1.5)`,
-              }}
-            />
-          </div>
+          {/* Light mode: dark tinted paws */}
+          <img
+            src="/footprints.gif"
+            alt=""
+            className="w-64 h-64 md:w-80 md:h-80 object-contain block dark:hidden"
+            style={{
+              filter: `sepia(1) saturate(2) hue-rotate(${t.hue}deg) brightness(0.4)`,
+            }}
+          />
+          {/* Dark mode: light tinted paws */}
+          <img
+            src="/footprints.gif"
+            alt=""
+            className="w-64 h-64 md:w-80 md:h-80 object-contain hidden dark:block"
+            style={{
+              filter: `invert(1) sepia(1) saturate(1.5) hue-rotate(${t.hue}deg) brightness(1.5)`,
+            }}
+          />
         </div>
       ))}
     </>
