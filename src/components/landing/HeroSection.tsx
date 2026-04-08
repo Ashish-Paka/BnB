@@ -4,8 +4,9 @@ import logo from "../../assets/logo.webp";
 
 const BACKGROUNDS = [
   { type: "image", src: "/bg1.webp" },
-  { type: "image", src: "/bg2.webp" },
+  { type: "image", src: "/coffeebar.jpeg" },
   { type: "image", src: "/bru.webp" },
+  { type: "image", src: "/dogtreats.jpeg" },
   { type: "image", src: "/shop.webp" },
 ];
 
@@ -19,7 +20,7 @@ export default function HeroSection() {
         prevBgIndexRef.current = prev;
         return (prev + 1) % BACKGROUNDS.length;
       });
-    }, 8000);
+    }, 5000);
     return () => clearInterval(timer);
   }, []);
 

@@ -10,12 +10,16 @@ import {
   setMenuOrdering,
   setMenuPresetStore,
   setOrders,
+  getPublishedMenu,
   setPublishedMenu,
   setPublishedMenuImage,
   setPublishedMenuOrdering,
   setVisits,
   ensureMigrated,
   getConfig,
+  setPersistentCodes,
+  setAnalytics,
+  getAnalytics,
 } from "./store.js";
 import { ensureMenuPresets, syncActiveMenuPreset } from "./menu-presets.js";
 import { normalizeMenuSortOrders } from "./menu-sort.js";
@@ -58,18 +62,71 @@ export async function restoreBackupData(
   mode: "overwrite" | "combine" = "overwrite"
 ): Promise<Record<string, number | boolean>> {
   const imported: Record<string, number | boolean> = {};
-  let normalizedMenu = body.menu && Array.isArray(body.menu) ? normalizeMenuSortOrders(body.menu).items : null;
+  // Preserve exact sort_order values from the backup — don't re-number them.
+  // normalizeMenuSortOrders is for edit-time housekeeping, not restore.
+  let normalizedMenu = body.menu && Array.isArray(body.menu) ? body.menu : null;
   let normalizedPublishedMenu =
     body.published_menu && Array.isArray(body.published_menu)
-      ? normalizeMenuSortOrders(body.published_menu).items
+      ? body.published_menu
       : normalizedMenu;
 
   if (mode === "combine") {
     if (body.menu && Array.isArray(body.menu)) {
       const existing = await getMenu();
-      const { merged, added } = mergeById(existing, body.menu);
-      await setMenu(merged);
-      imported.menu = added;
+      const existingIds = new Set(existing.map((i) => i.id));
+      const newItems = (body.menu as any[]).filter((i) => !existingIds.has(i.id));
+      if (newItems.length > 0) {
+        // Insert restored items into the correct position by sort_order within their category
+        const merged = [...existing];
+        for (const item of newItems) {
+          // Find the right insertion point: after the last item in the same category
+          // with a lower sort_order, preserving the backup's ordering
+          let insertIdx = merged.length;
+          const sameCatItems = merged
+            .map((m, i) => ({ m, i }))
+            .filter(({ m }) => m.category === item.category);
+          if (sameCatItems.length > 0) {
+            // Find where this item fits by sort_order
+            const afterItem = sameCatItems.find(({ m }) => (m.sort_order ?? 0) >= (item.sort_order ?? 0));
+            insertIdx = afterItem ? afterItem.i : sameCatItems[sameCatItems.length - 1].i + 1;
+          }
+          merged.splice(insertIdx, 0, item);
+        }
+        await setMenu(merged);
+        imported.menu = newItems.length;
+
+        // Also restore menu_ordering from backup if items were added
+        if (body.menu_ordering && typeof body.menu_ordering === "object") {
+          await setMenuOrdering(body.menu_ordering);
+          imported.menu_ordering = true;
+        }
+        if (body.published_menu_ordering && typeof body.published_menu_ordering === "object") {
+          await setPublishedMenuOrdering(body.published_menu_ordering);
+          imported.published_menu_ordering = true;
+        }
+        // Also restore published menu with re-added items
+        if (body.published_menu && Array.isArray(body.published_menu)) {
+          const existingPub = (await getPublishedMenu()) ?? existing;
+          const pubIds = new Set(existingPub.map((i) => i.id));
+          const newPubItems = (body.published_menu as any[]).filter((i) => !pubIds.has(i.id));
+          if (newPubItems.length > 0) {
+            const mergedPub = [...existingPub];
+            for (const item of newPubItems) {
+              let insertIdx = mergedPub.length;
+              const sameCat = mergedPub.map((m, i) => ({ m, i })).filter(({ m }) => m.category === item.category);
+              if (sameCat.length > 0) {
+                const after = sameCat.find(({ m }) => (m.sort_order ?? 0) >= (item.sort_order ?? 0));
+                insertIdx = after ? after.i : sameCat[sameCat.length - 1].i + 1;
+              }
+              mergedPub.splice(insertIdx, 0, item);
+            }
+            await setPublishedMenu(mergedPub);
+            imported.published_menu = newPubItems.length;
+          }
+        }
+      } else {
+        imported.menu = 0;
+      }
     }
     if (body.customers && Array.isArray(body.customers)) {
       const existing = await getCustomers();
@@ -90,12 +147,21 @@ export async function restoreBackupData(
       imported.visits = added;
     }
 
+    if (body.analytics && Array.isArray(body.analytics)) {
+      const existing = await getAnalytics();
+      const existingKeys = new Set(existing.map((v) => `${v.visitor_id}-${v.timestamp}`));
+      const newVisits = body.analytics.filter((v: any) => !existingKeys.has(`${v.visitor_id}-${v.timestamp}`));
+      await setAnalytics([...existing, ...newVisits]);
+      imported.analytics = newVisits.length;
+    }
+
     imported.config = false;
     imported.menu_presets = false;
-    imported.menu_ordering = false;
-    imported.published_menu = false;
-    imported.published_menu_ordering = false;
+    if (!imported.menu_ordering) imported.menu_ordering = false;
+    if (!imported.published_menu) imported.published_menu = false;
+    if (!imported.published_menu_ordering) imported.published_menu_ordering = false;
     imported.published_images = false;
+    imported.persistent_codes = false;
     imported.images = await restoreImages(body.images, false);
     await syncActiveMenuPreset();
     return imported;
@@ -124,7 +190,8 @@ export async function restoreBackupData(
     await ensureMigrated(await getConfig());
   }
   if (body.menu_ordering && typeof body.menu_ordering === "object" && !Array.isArray(body.menu_ordering)) {
-    await setMenuOrdering(sanitizeMenuOrdering(body.menu_ordering, normalizedMenu ?? await getMenu()));
+    // Restore ordering as-is from backup — don't sanitize/strip during restore
+    await setMenuOrdering(body.menu_ordering);
     imported.menu_ordering = true;
   }
   if (body.published_menu && Array.isArray(body.published_menu)) {
@@ -139,27 +206,32 @@ export async function restoreBackupData(
     typeof body.published_menu_ordering === "object" &&
     !Array.isArray(body.published_menu_ordering)
   ) {
-    await setPublishedMenuOrdering(
-      sanitizeMenuOrdering(body.published_menu_ordering, normalizedPublishedMenu ?? normalizedMenu ?? await getMenu())
-    );
+    await setPublishedMenuOrdering(body.published_menu_ordering);
     imported.published_menu_ordering = true;
   } else if (body.menu_ordering && typeof body.menu_ordering === "object" && !Array.isArray(body.menu_ordering)) {
-    await setPublishedMenuOrdering(
-      sanitizeMenuOrdering(body.menu_ordering, normalizedPublishedMenu ?? normalizedMenu ?? await getMenu())
-    );
+    await setPublishedMenuOrdering(body.menu_ordering);
     imported.published_menu_ordering = true;
   }
   if (body.menu_presets && typeof body.menu_presets === "object" && !Array.isArray(body.menu_presets)) {
     await setMenuPresetStore(body.menu_presets);
-    await ensureMenuPresets();
+    await ensureMenuPresets(true);
     imported.menu_presets = true;
   }
 
   imported.images = await restoreImages(body.images, false);
   imported.published_images = await restoreImages(body.published_images, true);
 
+  if (body.persistent_codes && Array.isArray(body.persistent_codes)) {
+    await setPersistentCodes(body.persistent_codes);
+    imported.persistent_codes = body.persistent_codes.length;
+  }
+  if (body.analytics && Array.isArray(body.analytics)) {
+    await setAnalytics(body.analytics);
+    imported.analytics = body.analytics.length;
+  }
+
   if (!body.menu_presets) {
-    await ensureMenuPresets();
+    await ensureMenuPresets(true);
   }
 
   return imported;

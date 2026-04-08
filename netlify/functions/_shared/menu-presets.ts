@@ -73,7 +73,8 @@ function presetLabel(index: number, title: string): string {
 function normalizePreset(
   preset: Partial<MenuPreset> | undefined,
   index: number,
-  fallback: MenuPreset
+  fallback: MenuPreset,
+  preserveOrder = false,
 ): MenuPreset {
   const hasMenu = Array.isArray(preset?.menu);
   const hasMenuOrdering = !!(preset?.menu_ordering && typeof preset.menu_ordering === "object");
@@ -84,35 +85,30 @@ function normalizePreset(
   const hasImages = !!(preset?.images && typeof preset.images === "object");
   const hasPublishedImages = !!(preset?.published_images && typeof preset.published_images === "object");
 
-  const normalizedMenu = normalizeMenuSortOrders(
-    hasMenu ? clone(preset!.menu as MenuItem[]) : clone(fallback.menu)
-  ).items;
-  const normalizedPublishedMenu = normalizeMenuSortOrders(
-    hasPublishedMenu
-      ? clone(preset!.published_menu as MenuItem[])
-      : hasMenu
-        ? clone(preset!.menu as MenuItem[])
-        : clone(fallback.published_menu)
-  ).items;
+  const rawMenu = hasMenu ? clone(preset!.menu as MenuItem[]) : clone(fallback.menu);
+  const normalizedMenu = preserveOrder ? rawMenu : normalizeMenuSortOrders(rawMenu).items;
+  const rawPublishedMenu = hasPublishedMenu
+    ? clone(preset!.published_menu as MenuItem[])
+    : hasMenu
+      ? clone(preset!.menu as MenuItem[])
+      : clone(fallback.published_menu);
+  const normalizedPublishedMenu = preserveOrder ? rawPublishedMenu : normalizeMenuSortOrders(rawPublishedMenu).items;
 
-  const menuOrdering = sanitizeMenuOrdering(
-    hasMenuOrdering
+  const rawMenuOrdering = hasMenuOrdering
+    ? clone(preset!.menu_ordering as MenuOrdering)
+    : hasMenu
+      ? clone(EMPTY_MENU_ORDERING)
+      : clone(fallback.menu_ordering);
+  const menuOrdering = preserveOrder ? rawMenuOrdering : sanitizeMenuOrdering(rawMenuOrdering, normalizedMenu);
+
+  const rawPublishedOrdering = hasPublishedOrdering
+    ? clone(preset!.published_menu_ordering as MenuOrdering)
+    : hasMenuOrdering
       ? clone(preset!.menu_ordering as MenuOrdering)
       : hasMenu
-        ? clone(EMPTY_MENU_ORDERING)
-        : clone(fallback.menu_ordering),
-    normalizedMenu
-  );
-  const publishedMenuOrdering = sanitizeMenuOrdering(
-    hasPublishedOrdering
-      ? clone(preset!.published_menu_ordering as MenuOrdering)
-      : hasMenuOrdering
-        ? clone(preset!.menu_ordering as MenuOrdering)
-        : hasMenu
-          ? clone(menuOrdering)
-          : clone(fallback.published_menu_ordering),
-    normalizedPublishedMenu
-  );
+        ? clone(menuOrdering)
+        : clone(fallback.published_menu_ordering);
+  const publishedMenuOrdering = preserveOrder ? rawPublishedOrdering : sanitizeMenuOrdering(rawPublishedOrdering, normalizedPublishedMenu);
   const images =
     hasImages
       ? clone(preset!.images as Record<string, MenuPresetImage>)
@@ -140,7 +136,7 @@ function normalizePreset(
   };
 }
 
-async function snapshotCurrentState(index: number, title = ""): Promise<MenuPreset> {
+async function snapshotCurrentState(index: number, title = "", preserveOrder = false): Promise<MenuPreset> {
   const [menu, menuOrdering, publishedMenu, publishedOrdering] = await Promise.all([
     getMenu(),
     getMenuOrdering(),
@@ -148,10 +144,10 @@ async function snapshotCurrentState(index: number, title = ""): Promise<MenuPres
     getPublishedMenuOrdering(),
   ]);
 
-  const normalizedMenu = normalizeMenuSortOrders(menu).items;
-  const resolvedPublishedMenu = normalizeMenuSortOrders(publishedMenu ?? normalizedMenu).items;
-  const resolvedMenuOrdering = sanitizeMenuOrdering(menuOrdering, normalizedMenu);
-  const resolvedPublishedOrdering = sanitizeMenuOrdering(publishedOrdering ?? menuOrdering, resolvedPublishedMenu);
+  const normalizedMenu = preserveOrder ? menu : normalizeMenuSortOrders(menu).items;
+  const resolvedPublishedMenu = preserveOrder ? (publishedMenu ?? normalizedMenu) : normalizeMenuSortOrders(publishedMenu ?? normalizedMenu).items;
+  const resolvedMenuOrdering = preserveOrder ? menuOrdering : sanitizeMenuOrdering(menuOrdering, normalizedMenu);
+  const resolvedPublishedOrdering = preserveOrder ? (publishedOrdering ?? menuOrdering) : sanitizeMenuOrdering(publishedOrdering ?? menuOrdering, resolvedPublishedMenu);
   const [images, publishedImages] = await Promise.all([
     captureImages(normalizedMenu, false),
     captureImages(resolvedPublishedMenu, true),
@@ -169,9 +165,9 @@ async function snapshotCurrentState(index: number, title = ""): Promise<MenuPres
   };
 }
 
-export async function ensureMenuPresets(): Promise<MenuPresetStore> {
+export async function ensureMenuPresets(preserveOrder = false): Promise<MenuPresetStore> {
   const existing = await getMenuPresetStore();
-  const fallbackPreset = await snapshotCurrentState(0);
+  const fallbackPreset = await snapshotCurrentState(0, "", preserveOrder);
 
   if (!existing || !Array.isArray(existing.presets) || existing.presets.length === 0) {
     const presets = Array.from({ length: MENU_PRESET_COUNT }, (_, index) => ({
@@ -185,7 +181,7 @@ export async function ensureMenuPresets(): Promise<MenuPresetStore> {
   }
 
   const presets = Array.from({ length: MENU_PRESET_COUNT }, (_, index) =>
-    normalizePreset(existing.presets[index], index, { ...clone(fallbackPreset), index, title: "" })
+    normalizePreset(existing.presets[index], index, { ...clone(fallbackPreset), index, title: "" }, preserveOrder)
   );
 
   const active_preset_index =

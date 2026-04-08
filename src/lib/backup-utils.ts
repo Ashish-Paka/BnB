@@ -36,6 +36,8 @@ export async function generateBackupZip(data: any): Promise<Blob> {
   if (data.orders) zip.file("orders.csv", flattenToCSV(data.orders));
   if (data.visits) zip.file("visits.csv", flattenToCSV(data.visits));
   if (data.config) zip.file("config.csv", flattenToCSV([data.config]));
+  if (data.persistent_codes) zip.file("persistent-codes.json", JSON.stringify(data.persistent_codes, null, 2));
+  if (data.analytics) zip.file("analytics.json", JSON.stringify(data.analytics, null, 2));
 
   // Add images
   if (data.images) {
@@ -133,6 +135,8 @@ export function validateBackupJSON(data: unknown): { valid: boolean; errors: str
   if (d.published_images && (typeof d.published_images !== "object" || Array.isArray(d.published_images))) {
     errors.push("published_images should be an object");
   }
+  if (d.persistent_codes && !Array.isArray(d.persistent_codes)) errors.push("persistent_codes should be an array");
+  if (d.analytics && !Array.isArray(d.analytics)) errors.push("analytics should be an array");
   if (
     !d.menu &&
     !d.menu_ordering &&
@@ -142,7 +146,9 @@ export function validateBackupJSON(data: unknown): { valid: boolean; errors: str
     !d.customers &&
     !d.orders &&
     !d.visits &&
-    !d.config
+    !d.config &&
+    !d.persistent_codes &&
+    !d.analytics
   ) {
     errors.push("No recognizable data keys found");
   }

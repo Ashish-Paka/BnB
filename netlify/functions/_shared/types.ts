@@ -1,6 +1,9 @@
 export interface MenuItemOption {
   name: string;
   choices: { label: string; extra_cents: number }[];
+  min_selections?: number;
+  max_selections?: number;
+  show_requirement_label?: boolean;
 }
 
 export interface MenuItem {
@@ -66,7 +69,7 @@ export interface OrderItem {
   item_name: string;
   quantity: number;
   price_cents: number;
-  options: Record<string, string>;
+  options: Record<string, string | string[]>;
 }
 
 export interface Order {
@@ -108,4 +111,22 @@ export interface AppConfig {
   google_accounts?: GoogleAccount[];
   /** @deprecated — migrated to google_accounts */
   owner_google_email?: string;
+}
+
+export interface PersistentCode {
+  id: string;
+  label: string;
+  code: string;
+  enabled: boolean;
+  created_at: string;
+}
+
+export interface AnalyticsVisit {
+  visitor_id: string;
+  timestamp: string;
+  page_path: string;
+  device_type: "mobile" | "tablet" | "desktop";
+  referrer: string;
+  is_new_visitor: boolean;
+  screen_width: number;
 }

@@ -19,7 +19,7 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId, 
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<string>("");
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
-  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string[]>>({});
   const [showCheckout, setShowCheckout] = useState(false);
   const [customerName, setCustomerName] = useState("");
   const [placing, setPlacing] = useState(false);
@@ -98,22 +98,54 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId, 
 
   // Always open modal so users can see full description + image
   const handleSelectItem = (item: MenuItem) => {
-    const defaults: Record<string, string> = {};
+    const defaults: Record<string, string[]> = {};
     if (item.options) {
       for (const opt of item.options) {
-        defaults[opt.name] = opt.choices[0]?.label || "";
+        const maxSel = opt.max_selections ?? 1;
+        if (maxSel <= 1 && opt.choices.length > 0) {
+          // Single-select: default to first choice
+          defaults[opt.name] = opt.choices[0]?.label ? [opt.choices[0].label] : [];
+        } else {
+          // Multi-select: default to empty
+          defaults[opt.name] = [];
+        }
       }
     }
     setSelectedOptions(defaults);
     setSelectedItem(item);
   };
 
+  const isOptionValid = () => {
+    if (!selectedItem?.options) return true;
+    return selectedItem.options.every((opt) => {
+      const minSel = opt.min_selections ?? 1;
+      const selected = selectedOptions[opt.name] || [];
+      return selected.length >= minSel;
+    });
+  };
+
   const handleAddWithOptions = () => {
-    if (selectedItem) {
+    if (selectedItem && isOptionValid()) {
       cart.addItem(selectedItem, selectedOptions);
       setSelectedItem(null);
       setSelectedOptions({});
     }
+  };
+
+  const toggleOption = (optName: string, choiceLabel: string, maxSel: number) => {
+    setSelectedOptions((prev) => {
+      const current = prev[optName] || [];
+      if (maxSel <= 1) {
+        // Single-select: radio behavior (toggle off if clicking same, else replace)
+        return { ...prev, [optName]: current.includes(choiceLabel) ? [] : [choiceLabel] };
+      }
+      // Multi-select: toggle in/out
+      if (current.includes(choiceLabel)) {
+        return { ...prev, [optName]: current.filter((l) => l !== choiceLabel) };
+      }
+      if (current.length >= maxSel) return prev; // at max
+      return { ...prev, [optName]: [...current, choiceLabel] };
+    });
   };
 
   const handlePlaceOrder = async () => {
@@ -151,9 +183,11 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId, 
     let total = selectedItem.base_price_cents;
     if (selectedItem.options) {
       for (const opt of selectedItem.options) {
-        const selected = selectedOptions[opt.name];
-        const choice = opt.choices.find((c) => c.label === selected);
-        if (choice) total += choice.extra_cents;
+        const selected = selectedOptions[opt.name] || [];
+        for (const label of selected) {
+          const choice = opt.choices.find((c) => c.label === label);
+          if (choice) total += choice.extra_cents;
+        }
       }
     }
     return total;
@@ -257,7 +291,7 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId, 
       </div>
 
       {/* Category tabs */}
-      <div className="px-4 py-3 flex gap-2 overflow-x-auto overscroll-x-contain">
+      <div className="sticky top-[53px] z-[9] bg-[var(--bg-color-95)] backdrop-blur-md border-b border-stone-300 dark:border-stone-700 px-4 py-3 flex gap-2 overflow-x-auto overscroll-x-contain will-change-transform">
         {categories.map((cat) => (
           <button
             key={cat}
@@ -334,7 +368,7 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId, 
                 <img
                   src={getMenuImageUrl(selectedItem.id)}
                   alt={selectedItem.name}
-                  className="w-full aspect-[16/9] rounded-2xl object-cover mb-4"
+                  className="w-full rounded-2xl object-contain mb-4"
                 />
               )}
 
@@ -349,41 +383,66 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId, 
                 </p>
               )}
 
-              {selectedItem.options?.map((opt) => (
-                <div key={opt.name} className="mb-4">
-                  <label className="text-xs font-bold text-stone-500 uppercase tracking-wider mb-2 block">
-                    {opt.name}
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {opt.choices.map((choice) => (
-                      <button
-                        key={choice.label}
-                        onClick={() =>
-                          setSelectedOptions((prev) => ({
-                            ...prev,
-                            [opt.name]: choice.label,
-                          }))
-                        }
-                        className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-                          selectedOptions[opt.name] === choice.label
-                            ? "bg-brand-olive text-white shadow-md"
-                            : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-700 shadow-xs"
-                        }`}
-                      >
-                        {choice.label}
-                        {choice.extra_cents > 0 && (
-                          <span className="ml-1 opacity-70">
-                            +{formatPrice(choice.extra_cents)}
-                          </span>
-                        )}
-                      </button>
-                    ))}
+              {selectedItem.options?.map((opt) => {
+                const minSel = opt.min_selections ?? 1;
+                const maxSel = opt.max_selections ?? 1;
+                const selected = selectedOptions[opt.name] || [];
+                const atMax = maxSel > 1 && selected.length >= maxSel;
+                return (
+                  <div key={opt.name} className="mb-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <label className="text-xs font-bold text-stone-500 uppercase tracking-wider">
+                        {opt.name}
+                      </label>
+                      {opt.show_requirement_label && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-stone-200 dark:bg-stone-700 text-stone-500 dark:text-stone-400">
+                          {minSel === 0 && maxSel >= opt.choices.length
+                            ? "Optional"
+                            : minSel === maxSel
+                              ? `Pick ${minSel}`
+                              : minSel === 0
+                                ? `Up to ${maxSel}`
+                                : `Pick ${minSel}-${maxSel}`}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {opt.choices.map((choice) => {
+                        const isSelected = selected.includes(choice.label);
+                        const isDisabled = !isSelected && atMax;
+                        return (
+                          <button
+                            key={choice.label}
+                            onClick={() => toggleOption(opt.name, choice.label, maxSel)}
+                            disabled={isDisabled}
+                            className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                              isSelected
+                                ? "bg-brand-olive text-white shadow-md"
+                                : isDisabled
+                                  ? "bg-stone-100 dark:bg-stone-800 text-stone-300 dark:text-stone-600 border border-stone-200 dark:border-stone-700 opacity-50 cursor-not-allowed"
+                                  : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-700 shadow-xs"
+                            }`}
+                          >
+                            {choice.label}
+                            {choice.extra_cents > 0 && (
+                              <span className="ml-1 opacity-70">
+                                +{formatPrice(choice.extra_cents)}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {minSel > 0 && selected.length < minSel && (
+                      <p className="text-xs text-red-400 mt-1">Select at least {minSel}</p>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
               <button
                 onClick={handleAddWithOptions}
-                className="w-full py-3 rounded-xl bg-brand-olive text-white font-bold text-lg shadow-lg mt-2"
+                disabled={!isOptionValid()}
+                className="w-full py-3 rounded-xl bg-brand-olive text-white font-bold text-lg shadow-lg mt-2 disabled:opacity-50"
               >
                 Add to Order · {formatPrice(calculateSelectedTotal())}
               </button>
@@ -464,9 +523,12 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId, 
                           <p className="font-bold text-stone-800 dark:text-stone-200 text-sm">
                             {ci.menu_item.name}
                           </p>
-                          {Object.entries(ci.selected_options).length > 0 && (
+                          {Object.values(ci.selected_options).some((v) => Array.isArray(v) ? v.length > 0 : !!v) && (
                             <p className="text-xs text-stone-400">
-                              {Object.values(ci.selected_options).join(", ")}
+                              {Object.values(ci.selected_options)
+                                .map((v) => (Array.isArray(v) ? v.join(", ") : v))
+                                .filter(Boolean)
+                                .join("; ")}
                             </p>
                           )}
                         </div>

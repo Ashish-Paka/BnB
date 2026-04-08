@@ -180,7 +180,7 @@ export default function RewardsBanner({ pendingOtpCode, onOtpProcessed, refreshT
                   {customer.names[0]}
                 </p>
                 <p className="text-white/90 text-xs sm:text-sm font-medium mb-2">
-                  {customer.visit_count}/{REWARD_THRESHOLD} visits
+                  {customer.visit_count}/{REWARD_THRESHOLD} purchase visits
                 </p>
                 {availableRewards > 0 && (
                   <motion.div
@@ -211,7 +211,7 @@ export default function RewardsBanner({ pendingOtpCode, onOtpProcessed, refreshT
                     className="inline-flex items-center gap-1.5 bg-white text-amber-600 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full font-bold text-xs sm:text-sm shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 active:scale-95"
                   >
                     <Gift className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    Verify Visit
+                    Verify Purchase Visit
                   </button>
                   <button
                     onClick={() => setShowHistory(true)}
@@ -233,7 +233,7 @@ export default function RewardsBanner({ pendingOtpCode, onOtpProcessed, refreshT
             ) : (
               <>
                 <p className="text-white/90 text-sm sm:text-base font-medium mb-3">
-                  Earn a free drink every {REWARD_THRESHOLD} visits!
+                  Earn a free drink every {REWARD_THRESHOLD} purchase visits!
                 </p>
                 <button
                   onClick={() => setShowLogin(true)}
@@ -254,7 +254,7 @@ export default function RewardsBanner({ pendingOtpCode, onOtpProcessed, refreshT
       </Modal>
 
       {/* Verify Visit Modal */}
-      <Modal open={showVerify} onClose={() => setShowVerify(false)} title="Verify Your Visit">
+      <Modal open={showVerify} onClose={() => setShowVerify(false)} title="Verify Your Purchase Visit">
         {customer && (
           <VerifyVisit customerId={customer.id} onVerified={handleVerified} initialCode={otpCode || undefined} />
         )}

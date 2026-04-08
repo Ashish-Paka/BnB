@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from "react";
-import { Eye, EyeOff, Trash2, Star, Shield, RefreshCw, KeyRound, Download, Upload, Clock, Cloud } from "lucide-react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { Eye, EyeOff, Trash2, Star, Shield, RefreshCw, KeyRound, Download, Upload, Clock, Cloud, BarChart3, ChevronDown } from "lucide-react";
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from "recharts";
 import {
   changePassword,
   fetchSettings,
@@ -11,6 +12,8 @@ import {
   exportBackupOnline,
   importBackup,
   restoreLatestBackup,
+  fetchAnalyticsData,
+  uploadMenuImage,
 } from "../../lib/api";
 import {
   generateBackupZip,
@@ -59,6 +62,26 @@ export default function SettingsTab({ addToast, lastOnlineBackup, setLastOnlineB
   const googleAddRef = useRef<HTMLDivElement>(null);
   const googleReplaceRef = useRef<HTMLDivElement>(null);
 
+  // Analytics state
+  const [analyticsData, setAnalyticsData] = useState<{
+    total_views: number;
+    unique_visitors: number;
+    device_breakdown: { mobile: number; tablet: number; desktop: number };
+    referrer_breakdown: Record<string, number>;
+    referrer_raw: Record<string, number>;
+    daily_views: { date: string; views: number; unique: number }[];
+    new_vs_returning: { new: number; returning: number };
+  } | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [analyticsFrom, setAnalyticsFrom] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return d.toISOString().split("T")[0];
+  });
+  const [analyticsTo, setAnalyticsTo] = useState(() => new Date().toISOString().split("T")[0]);
+  const [analyticsTab, setAnalyticsTab] = useState<"overview" | "devices" | "referrers">("overview");
+  const [showRawReferrers, setShowRawReferrers] = useState(false);
+
   // Permission flags from server
   const [isOwner, setIsOwner] = useState(false);
   const [isAdminUser, setIsAdminUser] = useState(false);
@@ -69,6 +92,35 @@ export default function SettingsTab({ addToast, lastOnlineBackup, setLastOnlineB
     if (isOwner || isAdminUser) return true;
     return loginMethod === accountEmail;
   };
+
+  // Analytics data fetch
+  useEffect(() => {
+    setAnalyticsLoading(true);
+    fetchAnalyticsData(analyticsFrom, analyticsTo)
+      .then(setAnalyticsData)
+      .catch(() => {})
+      .finally(() => setAnalyticsLoading(false));
+  }, [analyticsFrom, analyticsTo]);
+
+  const CHART_COLORS = ["#f59e0b", "#ec4899", "#84cc16", "#8b5cf6", "#06b6d4", "#f97316"];
+  const deviceData = useMemo(() => {
+    if (!analyticsData) return [];
+    const { mobile, tablet, desktop } = analyticsData.device_breakdown;
+    return [
+      { name: "Mobile", value: mobile },
+      { name: "Tablet", value: tablet },
+      { name: "Desktop", value: desktop },
+    ].filter((d) => d.value > 0);
+  }, [analyticsData]);
+
+  const referrerData = useMemo(() => {
+    if (!analyticsData) return [];
+    const source = showRawReferrers ? analyticsData.referrer_raw : analyticsData.referrer_breakdown;
+    return Object.entries(source)
+      .sort((a, b) => (b[1] as number) - (a[1] as number))
+      .slice(0, 10)
+      .map(([name, value]) => ({ name, value: value as number }));
+  }, [analyticsData, showRawReferrers]);
 
   useEffect(() => {
     fetchSettings()
@@ -275,6 +327,8 @@ export default function SettingsTab({ addToast, lastOnlineBackup, setLastOnlineB
           data.config ? "config" : null,
           data.images ? `${Object.keys(data.images).length} images` : null,
           data.published_images ? `${Object.keys(data.published_images).length} published images` : null,
+          data.persistent_codes?.length ? `${data.persistent_codes.length} verification codes` : null,
+          data.analytics?.length ? `${data.analytics.length} analytics records` : null,
         ].filter(Boolean).join(", ");
         setPendingImport({ data, summary });
       })
@@ -287,9 +341,54 @@ export default function SettingsTab({ addToast, lastOnlineBackup, setLastOnlineB
     if (!pendingImport) return;
     setImportLoading(true);
     try {
-      const result = await importBackup(pendingImport.data, mode);
+      // Strip only base64 image blobs to stay under the request size limit.
+      // Keep ALL metadata (menu, ordering, presets structure) in one request
+      // so the backend restores everything atomically with correct ordering.
+      const data = JSON.parse(JSON.stringify(pendingImport.data));
+      const images = data.images;
+      const published_images = data.published_images;
+      delete data.images;
+      delete data.published_images;
+
+      // Strip images embedded inside presets (they're huge base64 blobs)
+      if (data.menu_presets?.presets) {
+        for (const p of data.menu_presets.presets) {
+          if (p.images) p.images = {};
+          if (p.published_images) p.published_images = {};
+        }
+      }
+
+      // 1. Import all data in one atomic request (menu, ordering, presets, config, etc.)
+      const result = await importBackup(data, mode);
+
+      // 2. Upload images one at a time
+      let imageCount = 0;
+      const uploadImages = async (
+        imgMap: Record<string, { data: string; content_type: string }> | undefined,
+        published: boolean,
+      ) => {
+        if (!imgMap || typeof imgMap !== "object") return;
+        for (const [itemId, imgData] of Object.entries(imgMap) as [string, any][]) {
+          if (!imgData?.data || !imgData?.content_type) continue;
+          try {
+            const binary = atob(imgData.data);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+            const blob = new Blob([bytes], { type: imgData.content_type });
+            await uploadMenuImage(itemId, blob, published);
+            imageCount++;
+          } catch {}
+        }
+      };
+
+      if (mode === "overwrite") {
+        await uploadImages(images, false);
+        await uploadImages(published_images, true);
+      }
+
       const label = mode === "combine" ? "Merged" : "Imported";
-      addToast(`${label}! ${JSON.stringify(result.imported)}`, "success");
+      const imgNote = imageCount > 0 ? ` (${imageCount} images uploaded)` : "";
+      addToast(`${label}! ${JSON.stringify(result.imported)}${imgNote}`, "success");
     } catch (err: any) {
       addToast(err?.message || "Failed to import", "error");
     } finally {
@@ -322,6 +421,182 @@ export default function SettingsTab({ addToast, lastOnlineBackup, setLastOnlineB
 
   return (
     <div className="space-y-6 max-w-md mx-auto">
+      {/* Site Analytics */}
+      <div className="p-5 rounded-2xl bg-stone-900 dark:bg-stone-900 border border-stone-700 shadow-sm text-white">
+        <div className="flex items-center gap-2 mb-4">
+          <BarChart3 className="w-5 h-5 text-brand-orange" />
+          <h3 className="font-bold text-white">Site Analytics</h3>
+        </div>
+
+        {/* Date picker */}
+        <div className="flex items-center gap-2 mb-4">
+          <input
+            type="date"
+            value={analyticsFrom}
+            onChange={(e) => setAnalyticsFrom(e.target.value)}
+            className="flex-1 px-3 py-1.5 rounded-lg bg-stone-800 border border-stone-700 text-sm text-stone-200 outline-none"
+          />
+          <span className="text-stone-500 text-xs">to</span>
+          <input
+            type="date"
+            value={analyticsTo}
+            onChange={(e) => setAnalyticsTo(e.target.value)}
+            className="flex-1 px-3 py-1.5 rounded-lg bg-stone-800 border border-stone-700 text-sm text-stone-200 outline-none"
+          />
+        </div>
+
+        {analyticsLoading ? (
+          <p className="text-stone-400 text-sm text-center py-4">Loading analytics...</p>
+        ) : analyticsData ? (
+          <>
+            {/* Tab navigation */}
+            <div className="flex gap-1 mb-4 bg-stone-800 rounded-xl p-1">
+              {(["overview", "devices", "referrers"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setAnalyticsTab(tab)}
+                  className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    analyticsTab === tab
+                      ? "bg-brand-orange text-stone-900"
+                      : "text-stone-400 hover:text-stone-200"
+                  }`}
+                >
+                  {tab === "overview" ? "Overview" : tab === "devices" ? "Devices" : "Referrers"}
+                </button>
+              ))}
+            </div>
+
+            {/* Overview tab */}
+            {analyticsTab === "overview" && (
+              <>
+                {/* Summary stats */}
+                <div className="grid grid-cols-2 gap-2 mb-4">
+                  <div className="bg-stone-800 rounded-xl p-3 text-center">
+                    <p className="text-2xl font-black text-brand-orange">{analyticsData.total_views.toLocaleString()}</p>
+                    <p className="text-[10px] text-stone-400 uppercase tracking-wider">Page Views</p>
+                  </div>
+                  <div className="bg-stone-800 rounded-xl p-3 text-center">
+                    <p className="text-2xl font-black text-brand-pink">{analyticsData.unique_visitors.toLocaleString()}</p>
+                    <p className="text-[10px] text-stone-400 uppercase tracking-wider">Unique Visitors</p>
+                  </div>
+                </div>
+
+                {/* Daily views chart */}
+                {analyticsData.daily_views.length > 0 && (
+                  <div className="bg-stone-800 rounded-xl p-3 mb-4">
+                    <p className="text-[10px] text-stone-400 uppercase tracking-wider mb-2">Daily Traffic</p>
+                    <ResponsiveContainer width="100%" height={160}>
+                      <AreaChart data={analyticsData.daily_views}>
+                        <XAxis
+                          dataKey="date"
+                          tickFormatter={(d) => d.slice(5)}
+                          tick={{ fontSize: 9, fill: "#78716c" }}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <YAxis hide />
+                        <Tooltip
+                          contentStyle={{ background: "#1c1917", border: "1px solid #44403c", borderRadius: "0.75rem", fontSize: "12px" }}
+                          labelStyle={{ color: "#a8a29e" }}
+                          itemStyle={{ color: "#f5f5f4" }}
+                        />
+                        <Area type="monotone" dataKey="views" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.15} strokeWidth={2} name="Views" />
+                        <Area type="monotone" dataKey="unique" stroke="#ec4899" fill="#ec4899" fillOpacity={0.1} strokeWidth={2} name="Unique" />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+
+                {/* New vs Returning */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-stone-800 rounded-xl p-3 text-center">
+                    <p className="text-lg font-bold text-brand-olive">{analyticsData.new_vs_returning.new}</p>
+                    <p className="text-[10px] text-stone-400">New Visitors</p>
+                  </div>
+                  <div className="bg-stone-800 rounded-xl p-3 text-center">
+                    <p className="text-lg font-bold text-purple-400">{analyticsData.new_vs_returning.returning}</p>
+                    <p className="text-[10px] text-stone-400">Returning</p>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Devices tab */}
+            {analyticsTab === "devices" && deviceData.length > 0 && (
+              <div className="bg-stone-800 rounded-xl p-4">
+                <ResponsiveContainer width="100%" height={200}>
+                  <PieChart>
+                    <Pie
+                      data={deviceData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={80}
+                      dataKey="value"
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    >
+                      {deviceData.map((_, i) => (
+                        <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{ background: "#1c1917", border: "1px solid #44403c", borderRadius: "0.75rem", fontSize: "12px" }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="flex justify-center gap-4 mt-2">
+                  {deviceData.map((d, i) => (
+                    <div key={d.name} className="flex items-center gap-1.5">
+                      <div className="w-2.5 h-2.5 rounded-full" style={{ background: CHART_COLORS[i] }} />
+                      <span className="text-xs text-stone-400">{d.name}: {d.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Referrers tab */}
+            {analyticsTab === "referrers" && (
+              <div className="bg-stone-800 rounded-xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-[10px] text-stone-400 uppercase tracking-wider">Top Sources</p>
+                  <button
+                    onClick={() => setShowRawReferrers(!showRawReferrers)}
+                    className="flex items-center gap-1 text-[10px] text-stone-500 hover:text-stone-300"
+                  >
+                    {showRawReferrers ? "Grouped" : "Raw domains"}
+                    <ChevronDown className="w-3 h-3" />
+                  </button>
+                </div>
+                {referrerData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={referrerData.length * 32 + 10}>
+                    <BarChart data={referrerData} layout="vertical">
+                      <XAxis type="number" hide />
+                      <YAxis
+                        type="category"
+                        dataKey="name"
+                        tick={{ fontSize: 11, fill: "#a8a29e" }}
+                        width={90}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <Tooltip
+                        contentStyle={{ background: "#1c1917", border: "1px solid #44403c", borderRadius: "0.75rem", fontSize: "12px" }}
+                      />
+                      <Bar dataKey="value" fill="#f59e0b" radius={[0, 4, 4, 0]} name="Visits" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <p className="text-stone-500 text-sm text-center py-4">No referrer data yet</p>
+                )}
+              </div>
+            )}
+          </>
+        ) : (
+          <p className="text-stone-500 text-sm text-center py-4">No analytics data yet</p>
+        )}
+      </div>
+
       {/* Main Password — owner and admin */}
       {(isOwner || isAdminUser) && (
         <div className="p-5 rounded-2xl bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 shadow-sm">

@@ -1,6 +1,9 @@
 export interface MenuItemOption {
   name: string;
   choices: { label: string; extra_cents: number }[];
+  min_selections?: number; // default 1
+  max_selections?: number; // default 1
+  show_requirement_label?: boolean; // default false, per-group toggle
 }
 
 export interface MenuItem {
@@ -36,7 +39,7 @@ export interface MenuPresetState {
 export interface CartItem {
   menu_item: MenuItem;
   quantity: number;
-  selected_options: Record<string, string>; // option name -> chosen label
+  selected_options: Record<string, string[]>; // option name -> chosen labels
   total_cents: number;
 }
 
@@ -58,7 +61,7 @@ export interface OrderItem {
   item_name: string;
   quantity: number;
   price_cents: number;
-  options: Record<string, string>;
+  options: Record<string, string | string[]>;
 }
 
 export interface Order {
@@ -97,4 +100,22 @@ export interface AppConfig {
   in_store_ordering_enabled: boolean;
   menu_editing_active?: boolean;
   google_accounts?: GoogleAccount[];
+}
+
+export interface PersistentCode {
+  id: string;
+  label: string;
+  code: string;
+  enabled: boolean;
+  created_at: string;
+}
+
+export interface AnalyticsVisit {
+  visitor_id: string;
+  timestamp: string;
+  page_path: string;
+  device_type: "mobile" | "tablet" | "desktop";
+  referrer: string;
+  is_new_visitor: boolean;
+  screen_width: number;
 }

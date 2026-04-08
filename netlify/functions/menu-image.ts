@@ -5,6 +5,7 @@ import {
   getMenuImage,
   getPublishedMenuImage,
   setMenuImage,
+  setPublishedMenuImage,
   deleteMenuImage,
 } from "./_shared/store.js";
 import { requireOwner } from "./_shared/auth.js";
@@ -45,6 +46,12 @@ export default async (req: Request, _context: Context) => {
     const buffer = await req.arrayBuffer();
     if (buffer.byteLength === 0) return new Response("Empty body", { status: 400 });
     if (buffer.byteLength > 500_000) return new Response("Image too large (max 500KB)", { status: 413 });
+
+    const isPublished = url.searchParams.get("published") === "true";
+    if (isPublished) {
+      await setPublishedMenuImage(itemId, buffer, contentType);
+      return Response.json({ success: true });
+    }
 
     await setMenuImage(itemId, buffer, contentType);
 

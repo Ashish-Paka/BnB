@@ -7,6 +7,8 @@ import type {
   AppConfig,
   MenuOrdering,
   MenuPresetStore,
+  PersistentCode,
+  AnalyticsVisit,
 } from "./types.js";
 
 const STORE_NAME = "bnb-data";
@@ -77,6 +79,14 @@ export const setConfig = (config: AppConfig) => setJSON("config", config);
 // Backup
 export const getBackup = () => getJSON<any>("backup", null);
 export const setBackup = (data: any) => setJSON("backup", data);
+
+// Persistent verification codes
+export const getPersistentCodes = () => getJSON<PersistentCode[]>("persistent-codes", []);
+export const setPersistentCodes = (codes: PersistentCode[]) => setJSON("persistent-codes", codes);
+
+// Analytics
+export const getAnalytics = () => getJSON<AnalyticsVisit[]>("analytics", []);
+export const setAnalytics = (visits: AnalyticsVisit[]) => setJSON("analytics", visits);
 
 // Menu images
 export async function getMenuImage(itemId: string): Promise<{ data: ArrayBuffer; contentType: string } | null> {

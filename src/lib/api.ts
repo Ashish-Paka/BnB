@@ -1,4 +1,4 @@
-import type { MenuItem, MenuOrdering, MenuPresetState, Order, Customer, Visit } from "./types";
+import type { MenuItem, MenuOrdering, MenuPresetState, Order, Customer, Visit, PersistentCode } from "./types";
 
 const API_BASE = "/.netlify/functions";
 
@@ -41,9 +41,10 @@ export const fetchPublicMenu = () => publicRequest<MenuItem[]>("menu-list");
 export const getMenuImageUrl = (itemId: string) =>
   `${API_BASE}/menu-image?id=${itemId}`;
 
-export async function uploadMenuImage(itemId: string, imageBlob: Blob): Promise<void> {
+export async function uploadMenuImage(itemId: string, imageBlob: Blob, published = false): Promise<void> {
   const token = localStorage.getItem("owner_token");
-  const res = await fetch(`${API_BASE}/menu-image?id=${itemId}`, {
+  const qs = published ? `id=${itemId}&published=true` : `id=${itemId}`;
+  const res = await fetch(`${API_BASE}/menu-image?${qs}`, {
     method: "POST",
     headers: {
       "Content-Type": imageBlob.type,
@@ -157,7 +158,7 @@ export const fetchOrderHistory = (customerId: string) =>
   request<
     {
       id: string;
-      items: { item_name: string; quantity: number; options: Record<string, string> }[];
+      items: { item_name: string; quantity: number; options: Record<string, string | string[]> }[];
       total_cents: number;
       status: string;
       is_free_reward: boolean;
@@ -345,3 +346,55 @@ export const changePassword = (current_password: string, new_password: string, p
     method: "POST",
     body: JSON.stringify({ current_password, new_password, password_type }),
   });
+
+// Persistent verification codes
+export const fetchPersistentCodes = () =>
+  request<PersistentCode[]>("persistent-codes-list");
+
+export const updatePersistentCode = (id: string, updates: {
+  label?: string;
+  enabled?: boolean;
+  regenerate?: boolean;
+  custom_code?: string;
+}) =>
+  request<PersistentCode[]>("persistent-codes-update", {
+    method: "PUT",
+    body: JSON.stringify({ id, ...updates }),
+  });
+
+export const addPersistentCode = (label?: string) =>
+  request<PersistentCode[]>("persistent-codes-update", {
+    method: "PUT",
+    body: JSON.stringify({ action: "add", label }),
+  });
+
+export const deletePersistentCode = (id: string) =>
+  request<PersistentCode[]>("persistent-codes-update", {
+    method: "PUT",
+    body: JSON.stringify({ action: "delete", id }),
+  });
+
+// Analytics
+export const trackVisit = (data: {
+  visitor_id: string;
+  page_path: string;
+  device_type: string;
+  referrer: string;
+  is_new_visitor: boolean;
+  screen_width: number;
+}) =>
+  publicRequest<{ success: boolean }>("analytics-track", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+
+export const fetchAnalyticsData = (from: string, to: string) =>
+  request<{
+    total_views: number;
+    unique_visitors: number;
+    device_breakdown: { mobile: number; tablet: number; desktop: number };
+    referrer_breakdown: Record<string, number>;
+    referrer_raw: Record<string, number>;
+    daily_views: { date: string; views: number; unique: number }[];
+    new_vs_returning: { new: number; returning: number };
+  }>(`analytics-data?from=${from}&to=${to}`);

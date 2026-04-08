@@ -31,6 +31,8 @@ export async function createBackupArchive(data: any): Promise<BackupArchive> {
   if (data.orders) zip.file("orders.csv", flattenToCSV(data.orders));
   if (data.visits) zip.file("visits.csv", flattenToCSV(data.visits));
   if (data.config) zip.file("config.csv", flattenToCSV([data.config]));
+  if (data.persistent_codes) zip.file("persistent-codes.json", JSON.stringify(data.persistent_codes, null, 2));
+  if (data.analytics) zip.file("analytics.json", JSON.stringify(data.analytics, null, 2));
 
   if (data.images) {
     const imageFolder = zip.folder("images");

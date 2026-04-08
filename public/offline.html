@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bones and Bru - Offline</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #fdfcf8;
+      color: #1c1917;
+      padding: 2rem;
+      text-align: center;
+    }
+    @media (prefers-color-scheme: dark) {
+      body { background: #121212; color: #f5f5f4; }
+      .card { background: #1e1e1e; border-color: #333; }
+      .btn { background: #f59e0b; color: #1c1917; }
+      .btn:hover { background: #d97706; }
+    }
+    .card {
+      background: #fff;
+      border: 1px solid #e7e5e4;
+      border-radius: 2rem;
+      padding: 3rem 2rem;
+      max-width: 400px;
+      width: 100%;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+    }
+    .icon {
+      font-size: 4rem;
+      margin-bottom: 1.5rem;
+    }
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 900;
+      margin-bottom: 0.5rem;
+    }
+    p {
+      color: #78716c;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      margin-bottom: 2rem;
+    }
+    .btn {
+      display: inline-block;
+      background: #f59e0b;
+      color: #1c1917;
+      font-weight: 700;
+      font-size: 0.95rem;
+      padding: 0.75rem 2rem;
+      border: none;
+      border-radius: 1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+      text-decoration: none;
+    }
+    .btn:hover { background: #d97706; }
+    .brand { color: #f59e0b; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">&#9749;</div>
+    <h1>You're offline!</h1>
+    <p>Get back online to explore <span class="brand">Bones and Bru</span>.</p>
+    <button class="btn" onclick="window.location.reload()">Try Again</button>
+  </div>
+  <script>
+    window.addEventListener('online', () => window.location.reload());
+  </script>
+</body>
+</html>

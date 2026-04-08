@@ -426,7 +426,7 @@ export default function DashboardPage() {
               {item.quantity}x {item.item_name}
               {Object.keys(item.options).length > 0 && (
                 <span className="text-stone-400 text-xs ml-1">
-                  ({Object.values(item.options).join(", ")})
+                  ({Object.values(item.options).map(v => Array.isArray(v) ? v.join(", ") : v).filter(Boolean).join("; ")})
                 </span>
               )}
             </span>

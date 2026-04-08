@@ -715,7 +715,7 @@ export default function MenuTab({ addToast }: Props) {
   const addOption = () => {
     setForm((prev) => ({
       ...prev,
-      options: [...prev.options, { name: "", choices: [{ label: "", extra_cents: 0 }] }],
+      options: [...prev.options, { name: "", choices: [{ label: "", extra_cents: 0 }], min_selections: 1, max_selections: 1, show_requirement_label: false }],
     }));
   };
   const removeOption = (idx: number) => {
@@ -725,6 +725,12 @@ export default function MenuTab({ addToast }: Props) {
     setForm((prev) => ({
       ...prev,
       options: prev.options.map((o, i) => (i === idx ? { ...o, name } : o)),
+    }));
+  };
+  const updateOptionField = (idx: number, field: string, value: number | boolean) => {
+    setForm((prev) => ({
+      ...prev,
+      options: prev.options.map((o, i) => (i === idx ? { ...o, [field]: value } : o)),
     }));
   };
   const addChoice = (optIdx: number) => {
@@ -1630,6 +1636,39 @@ export default function MenuTab({ addToast }: Props) {
                         >
                           <X className="w-4 h-4" />
                         </button>
+                      </div>
+                      <div className="flex items-center gap-3 mb-2 flex-wrap">
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-stone-400">Min</span>
+                          <input
+                            type="number"
+                            min="0"
+                            max={opt.choices.length}
+                            value={opt.min_selections ?? 1}
+                            onChange={(e) => updateOptionField(optIdx, "min_selections", Math.max(0, parseInt(e.target.value) || 0))}
+                            className="w-12 px-1.5 py-0.5 rounded-lg bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 text-xs text-stone-800 dark:text-stone-200 outline-none text-center"
+                          />
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-stone-400">Max</span>
+                          <input
+                            type="number"
+                            min="1"
+                            max={opt.choices.length || 1}
+                            value={opt.max_selections ?? 1}
+                            onChange={(e) => updateOptionField(optIdx, "max_selections", Math.max(1, parseInt(e.target.value) || 1))}
+                            className="w-12 px-1.5 py-0.5 rounded-lg bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 text-xs text-stone-800 dark:text-stone-200 outline-none text-center"
+                          />
+                        </div>
+                        <label className="flex items-center gap-1 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={opt.show_requirement_label ?? false}
+                            onChange={(e) => updateOptionField(optIdx, "show_requirement_label", e.target.checked)}
+                            className="accent-brand-olive w-3 h-3"
+                          />
+                          <span className="text-[10px] text-stone-400">Show label</span>
+                        </label>
                       </div>
                       {opt.choices.map((choice, choiceIdx) => (
                         <div key={choiceIdx} className="flex items-center gap-1.5 mb-1 min-w-0">

@@ -195,7 +195,7 @@ export default function VerifyVisit({ customerId, onVerified, onRedeemed, initia
       <p className="text-stone-600 dark:text-stone-400 text-sm text-center">
         {mode === "redeem"
           ? "Scan the QR code or enter the code to redeem your free drink"
-          : "Scan the QR code or enter the code from the barista"}
+          : "Scan the QR code or enter the purchase visit code from the barista"}
       </p>
 
       {/* Hidden canvas for jsQR fallback */}

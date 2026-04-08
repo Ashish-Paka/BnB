@@ -5,6 +5,7 @@ import {
   setCustomers,
   getVisits,
   setVisits,
+  getPersistentCodes,
 } from "./_shared/store.js";
 
 const REWARD_THRESHOLD = 10;
@@ -24,8 +25,30 @@ export default async (req: Request, context: Context) => {
     );
   }
 
-  // Verify the TOTP code
-  const isValid = await verifyCode(code);
+  // Verify the TOTP code first
+  let isValid = await verifyCode(code);
+  let isPersistent = false;
+
+  // If TOTP fails, check persistent codes as fallback
+  if (!isValid) {
+    const persistentCodes = await getPersistentCodes();
+    const matchedEnabled = persistentCodes.find((pc) => pc.code === code && pc.enabled);
+    const matchedDisabled = persistentCodes.find((pc) => pc.code === code && !pc.enabled);
+
+    if (matchedEnabled) {
+      isValid = true;
+      isPersistent = true;
+    } else if (matchedDisabled) {
+      return Response.json({
+        valid: false,
+        visit_count: 0,
+        reward_earned: false,
+        redeemed: false,
+        message: "This verification code is currently inactive. Please ask staff for an active code.",
+      });
+    }
+  }
+
   if (!isValid) {
     return Response.json({
       valid: false,
@@ -79,9 +102,13 @@ export default async (req: Request, context: Context) => {
   // --- Visit mode: record a visit ---
   const today = new Date().toISOString().split("T")[0];
   const visits = await getVisits();
-  const alreadyUsedCode = visits.some(
-    (v) => v.customer_id === customer_id && v.totp_code_used === code
-  );
+
+  // For persistent codes, only check same-day usage (since they don't rotate)
+  // For TOTP codes, check all-time (they rotate every 10 min)
+  const alreadyUsedCode = isPersistent
+    ? visits.some((v) => v.customer_id === customer_id && v.totp_code_used === code && v.date === today)
+    : visits.some((v) => v.customer_id === customer_id && v.totp_code_used === code);
+
   if (alreadyUsedCode) {
     return Response.json({
       valid: true,
@@ -89,7 +116,9 @@ export default async (req: Request, context: Context) => {
       total_visits: customer.total_visits,
       reward_earned: false,
       redeemed: false,
-      message: "You already used this code. Wait for a new one.",
+      message: isPersistent
+        ? "You already verified your visit today with this code."
+        : "You already used this code. Wait for a new one.",
     });
   }
 

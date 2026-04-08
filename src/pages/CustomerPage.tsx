@@ -5,6 +5,7 @@ import logo from "../assets/logo.webp";
 import HeroSection from "../components/landing/HeroSection";
 import FloatingDecorations from "../components/landing/FloatingDecorations";
 import ThemeToggle from "../components/landing/ThemeToggle";
+import InstallButton from "../components/landing/InstallButton";
 import CTABanner from "../components/landing/CTABanner";
 import SocialGrid from "../components/landing/SocialGrid";
 import WalkthroughButton from "../components/landing/WalkthroughButton";
@@ -13,7 +14,7 @@ import RewardsBanner from "../components/rewards/RewardsBanner";
 import InCafeBanner from "../components/order/InCafeBanner";
 import MenuOverlay from "../components/order/MenuOverlay";
 import { useCart } from "../contexts/CartContext";
-import { fetchOrderStatus, checkRewards, fetchPublicConfig } from "../lib/api";
+import { fetchOrderStatus, checkRewards, fetchPublicConfig, trackVisit } from "../lib/api";
 
 function getStoredCustomerId(): string | null {
   try {
@@ -140,13 +141,34 @@ export default function CustomerPage() {
     };
   }, [refreshPublicConfig]);
 
+  // Analytics tracking
+  useEffect(() => {
+    let visitorId = localStorage.getItem("bnb_visitor_id");
+    const isNew = !visitorId;
+    if (!visitorId) {
+      visitorId = crypto.randomUUID();
+      localStorage.setItem("bnb_visitor_id", visitorId);
+    }
+    const w = screen.width;
+    const device = w < 768 ? "mobile" : w < 1024 ? "tablet" : "desktop";
+    trackVisit({
+      visitor_id: visitorId,
+      page_path: window.location.pathname,
+      device_type: device,
+      referrer: document.referrer,
+      is_new_visitor: isNew,
+      screen_width: w,
+    }).catch(() => {});
+  }, []);
+
   useEffect(() => {
     const preloadImages = async () => {
       const images = [
         logo,
         "/bg1.webp",
-        "/bg2.webp",
+        "/coffeebar.jpeg",
         "/bru.webp",
+        "/dogtreats.jpeg",
         "/shop.webp",
       ];
       const promises = images.map(
@@ -202,7 +224,10 @@ export default function CustomerPage() {
       <div className="min-h-screen flex flex-col items-center relative overflow-hidden bg-[var(--bg-color)]">
         <HeroSection />
         <FloatingDecorations />
-        <ThemeToggle isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
+        <div className="absolute top-4 right-4 md:top-8 md:right-8 z-50 flex items-center gap-2">
+          <InstallButton />
+          <ThemeToggle isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
+        </div>
 
         <main className="w-full max-w-2xl lg:max-w-3xl z-10 px-6 sm:px-8 pb-16 md:pb-24 flex flex-col items-center">
           {/* Rewards — most prominent, first in content */}

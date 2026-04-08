@@ -15,6 +15,8 @@ import {
   setMenuOrdering,
   setPublishedMenuOrdering,
   setBackup,
+  getPersistentCodes,
+  getAnalytics,
 } from "./_shared/store.js";
 import { createBackupArchive } from "./_shared/backup-archive.js";
 import { ensureMenuPresets } from "./_shared/menu-presets.js";
@@ -41,6 +43,8 @@ export default async (req: Request, _context: Context) => {
     orders,
     visits,
     config,
+    persistent_codes,
+    analytics,
   ] = await Promise.all([
     getMenu(),
     getMenuOrdering(),
@@ -51,7 +55,9 @@ export default async (req: Request, _context: Context) => {
     getOrders(),
     getVisits(),
     getConfig(),
-  ]);
+    getPersistentCodes(),
+    getAnalytics(),
+  ] as const);
 
   // Export menu images as base64
   const images: Record<string, { data: string; content_type: string }> = {};
@@ -110,6 +116,8 @@ export default async (req: Request, _context: Context) => {
     config,
     images,
     published_images,
+    persistent_codes,
+    analytics,
     exported_at: new Date().toISOString(),
   };
 

@@ -100,7 +100,7 @@ export default function OrderHistory({ customerId }: Props) {
                     </span>
                     {Object.keys(item.options).length > 0 && (
                       <span className="text-xs text-stone-400 ml-1">
-                        ({Object.values(item.options).join(", ")})
+                        ({Object.values(item.options).map(v => Array.isArray(v) ? v.join(", ") : v).filter(Boolean).join("; ")})
                       </span>
                     )}
                   </div>
