@@ -395,6 +395,6 @@ export const fetchAnalyticsData = (from: string, to: string) =>
     device_breakdown: { mobile: number; tablet: number; desktop: number };
     referrer_breakdown: Record<string, number>;
     referrer_raw: Record<string, number>;
-    daily_views: { date: string; views: number; unique: number }[];
+    daily_views: { date: string; views: number; unique: number; returning: number; mobile: number; desktop: number }[];
     new_vs_returning: { new: number; returning: number };
   }>(`analytics-data?from=${from}&to=${to}`);

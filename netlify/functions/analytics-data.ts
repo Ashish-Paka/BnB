@@ -60,7 +60,7 @@ export default async (req: Request, _context: Context) => {
   const device = { mobile: 0, tablet: 0, desktop: 0 };
   const referrerGrouped: Record<string, number> = {};
   const referrerRaw: Record<string, number> = {};
-  const dailyMap: Record<string, { views: number; visitors: Set<string> }> = {};
+  const dailyMap: Record<string, { views: number; visitors: Set<string>; returning: number; mobile: number; desktop: number }> = {};
   let newCount = 0;
   let returningCount = 0;
 
@@ -77,9 +77,12 @@ export default async (req: Request, _context: Context) => {
 
     // Daily
     const date = v.timestamp.split("T")[0];
-    if (!dailyMap[date]) dailyMap[date] = { views: 0, visitors: new Set() };
+    if (!dailyMap[date]) dailyMap[date] = { views: 0, visitors: new Set(), returning: 0, mobile: 0, desktop: 0 };
     dailyMap[date].views += 1;
     dailyMap[date].visitors.add(v.visitor_id);
+    if (!v.is_new_visitor) dailyMap[date].returning += 1;
+    if (v.device_type === "mobile") dailyMap[date].mobile += 1;
+    if (v.device_type === "desktop") dailyMap[date].desktop += 1;
 
     // New vs returning
     if (v.is_new_visitor) newCount++;
@@ -92,6 +95,9 @@ export default async (req: Request, _context: Context) => {
       date,
       views: data.views,
       unique: data.visitors.size,
+      returning: data.returning,
+      mobile: data.mobile,
+      desktop: data.desktop,
     }));
 
   return Response.json({
