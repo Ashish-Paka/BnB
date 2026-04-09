@@ -15,6 +15,8 @@ import {
   setMenuOrdering,
   setPublishedMenuOrdering,
   setBackup,
+  setBackupImages,
+  setBackupPublishedImages,
   getPersistentCodes,
   getAnalytics,
 } from "./_shared/store.js";
@@ -122,9 +124,23 @@ export default async (req: Request, _context: Context) => {
   };
 
   // If ?save=true, store backup to blobs (online backup)
+  // Save data and images SEPARATELY to avoid exceeding blob/stream size limits
   const url = new URL(req.url);
   if (url.searchParams.get("save") === "true") {
-    await setBackup(await createBackupArchive(data));
+    const { images: imgData, published_images: pubImgData, ...dataWithoutImages } = data;
+    // Strip preset images too (they're large base64 blobs)
+    const liteData = JSON.parse(JSON.stringify(dataWithoutImages));
+    if (liteData.menu_presets?.presets) {
+      for (const p of liteData.menu_presets.presets) {
+        if (p.images) p.images = {};
+        if (p.published_images) p.published_images = {};
+      }
+    }
+    await Promise.all([
+      setBackup(liteData),
+      setBackupImages(imgData || {}),
+      setBackupPublishedImages(pubImgData || {}),
+    ]);
   }
 
   return Response.json(data);

@@ -79,6 +79,10 @@ export const setConfig = (config: AppConfig) => setJSON("config", config);
 // Backup
 export const getBackup = () => getJSON<any>("backup", null);
 export const setBackup = (data: any) => setJSON("backup", data);
+export const getBackupImages = () => getJSON<Record<string, { data: string; content_type: string }>>("backup-images", {});
+export const setBackupImages = (images: Record<string, { data: string; content_type: string }>) => setJSON("backup-images", images);
+export const getBackupPublishedImages = () => getJSON<Record<string, { data: string; content_type: string }>>("backup-published-images", {});
+export const setBackupPublishedImages = (images: Record<string, { data: string; content_type: string }>) => setJSON("backup-published-images", images);
 
 // Persistent verification codes
 export const getPersistentCodes = () => getJSON<PersistentCode[]>("persistent-codes", []);

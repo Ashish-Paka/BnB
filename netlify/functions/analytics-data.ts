@@ -89,9 +89,9 @@ export default async (req: Request, _context: Context) => {
     return key.slice(5); // "04-08"
   }
 
-  type Bucket = { views: number; visitors: Set<string>; returning: number; mobile: number; desktop: number; referrers: number; orders: number; verifications: number; label: string };
+  type Bucket = { views: number; visitors: Set<string>; returning: number; mobile: number; desktop: number; referrers: number; orders: number; verifications: number; label: string; referrer_detail: Record<string, number> };
   const bucketMap: Record<string, Bucket> = {};
-  const makeBucket = (key: string): Bucket => ({ views: 0, visitors: new Set(), returning: 0, mobile: 0, desktop: 0, referrers: 0, orders: 0, verifications: 0, label: formatBucketLabel(key) });
+  const makeBucket = (key: string): Bucket => ({ views: 0, visitors: new Set(), returning: 0, mobile: 0, desktop: 0, referrers: 0, orders: 0, verifications: 0, label: formatBucketLabel(key), referrer_detail: {} });
 
   // Pre-fill all buckets in range so x-axis is complete
   if (granularity === "hour") {
@@ -142,7 +142,11 @@ export default async (req: Request, _context: Context) => {
     if (!v.is_new_visitor) bucketMap[key].returning += 1;
     if (v.device_type === "mobile") bucketMap[key].mobile += 1;
     if (v.device_type === "desktop") bucketMap[key].desktop += 1;
-    if (v.referrer) bucketMap[key].referrers += 1;
+    if (v.referrer) {
+      bucketMap[key].referrers += 1;
+      const rg = groupReferrer(v.referrer);
+      bucketMap[key].referrer_detail[rg] = (bucketMap[key].referrer_detail[rg] || 0) + 1;
+    }
 
     if (v.is_new_visitor) newCount++;
     else returningCount++;
@@ -183,6 +187,7 @@ export default async (req: Request, _context: Context) => {
       mobile: data.mobile,
       desktop: data.desktop,
       referrers: data.referrers,
+      referrer_detail: data.referrer_detail,
       orders: data.orders,
       verifications: data.verifications,
     }));

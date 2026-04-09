@@ -533,9 +533,33 @@ export default function SettingsTab({ addToast, lastOnlineBackup, setLastOnlineB
                       width={30}
                     />
                     <Tooltip
-                      contentStyle={{ background: "#1c1917", border: "1px solid #44403c", borderRadius: "0.75rem", fontSize: "12px" }}
-                      labelStyle={{ color: "#a8a29e" }}
-                      itemStyle={{ color: "#f5f5f4" }}
+                      contentStyle={{ background: "#1c1917", border: "1px solid #44403c", borderRadius: "0.75rem", fontSize: "11px", padding: "8px 12px" }}
+                      labelStyle={{ color: "#a8a29e", marginBottom: "4px" }}
+                      itemStyle={{ color: "#f5f5f4", padding: "1px 0" }}
+                      content={({ active, payload, label }) => {
+                        if (!active || !payload?.length) return null;
+                        const dataPoint = payload[0]?.payload;
+                        return (
+                          <div style={{ background: "#1c1917", border: "1px solid #44403c", borderRadius: "0.75rem", padding: "8px 12px", fontSize: "11px" }}>
+                            <p style={{ color: "#a8a29e", marginBottom: "4px" }}>{label}</p>
+                            {payload.map((entry: any) => (
+                              <p key={entry.dataKey} style={{ color: entry.color, padding: "1px 0" }}>
+                                {entry.name}: {entry.value}
+                              </p>
+                            ))}
+                            {chartMetrics.referrers && dataPoint?.referrer_detail && Object.keys(dataPoint.referrer_detail).length > 0 && (
+                              <div style={{ borderTop: "1px solid #44403c", marginTop: "4px", paddingTop: "4px" }}>
+                                <p style={{ color: "#78716c", fontSize: "10px", marginBottom: "2px" }}>Referral sources:</p>
+                                {Object.entries(dataPoint.referrer_detail).sort((a: any, b: any) => b[1] - a[1]).map(([source, count]: any) => (
+                                  <p key={source} style={{ color: "#d6d3d1", fontSize: "10px", paddingLeft: "6px" }}>
+                                    {source}: {count}
+                                  </p>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }}
                     />
                     {METRIC_CONFIG.map(({ key, color, label }) =>
                       chartMetrics[key] ? (

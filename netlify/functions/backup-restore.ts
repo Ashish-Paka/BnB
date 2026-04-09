@@ -1,7 +1,14 @@
 import type { Context } from "@netlify/functions";
 import { requireOwner, extractLoginMethod, isPrimaryOrPassword } from "./_shared/auth.js";
-import { getBackup, getConfig, ensureMigrated } from "./_shared/store.js";
-import { extractBackupData } from "./_shared/backup-archive.js";
+import {
+  getBackup,
+  getBackupImages,
+  getBackupPublishedImages,
+  getConfig,
+  ensureMigrated,
+  setMenuImage,
+  setPublishedMenuImage,
+} from "./_shared/store.js";
 import { restoreBackupData } from "./_shared/backup-data.js";
 
 export default async (req: Request, _context: Context) => {
@@ -21,17 +28,60 @@ export default async (req: Request, _context: Context) => {
     return Response.json({ error: "Only owner or admin can restore data" }, { status: 403 });
   }
 
-  const storedBackup = await getBackup();
-  const backup = await extractBackupData(storedBackup);
+  // Read data (without images) and images separately
+  const backup = await getBackup();
   if (!backup) {
     return new Response("No restore point available", { status: 404 });
   }
 
-  const imported = await restoreBackupData(backup, "overwrite");
+  // Handle old-format backups that have zip_base64
+  let data = backup;
+  if (typeof backup?.zip_base64 === "string") {
+    const { extractBackupData } = await import("./_shared/backup-archive.js");
+    data = await extractBackupData(backup);
+    if (!data) {
+      return new Response("Failed to extract backup", { status: 500 });
+    }
+  }
+
+  // Restore data (no images in the body — they're stored separately)
+  const imported = await restoreBackupData(data, "overwrite");
+
+  // Restore images individually from separate blob keys
+  let imageCount = 0;
+  try {
+    const [images, publishedImages] = await Promise.all([
+      getBackupImages(),
+      getBackupPublishedImages(),
+    ]);
+
+    for (const [itemId, imgData] of Object.entries(images)) {
+      if (!imgData?.data || !imgData?.content_type) continue;
+      try {
+        const buffer = Buffer.from(imgData.data, "base64");
+        const arrayBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+        await setMenuImage(itemId, arrayBuffer, imgData.content_type);
+        imageCount++;
+      } catch {}
+    }
+
+    for (const [itemId, imgData] of Object.entries(publishedImages)) {
+      if (!imgData?.data || !imgData?.content_type) continue;
+      try {
+        const buffer = Buffer.from(imgData.data, "base64");
+        const arrayBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+        await setPublishedMenuImage(itemId, arrayBuffer, imgData.content_type);
+        imageCount++;
+      } catch {}
+    }
+  } catch {}
+
+  imported.images_restored = imageCount;
+
   return Response.json({
     success: true,
     mode: "overwrite",
     imported,
-    restored_from: storedBackup?.exported_at ?? backup.exported_at ?? null,
+    restored_from: backup?.exported_at ?? data?.exported_at ?? null,
   });
 };
