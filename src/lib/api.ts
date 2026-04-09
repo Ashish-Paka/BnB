@@ -388,7 +388,7 @@ export const trackVisit = (data: {
     body: JSON.stringify(data),
   });
 
-export const fetchAnalyticsData = (from: string, to: string) =>
+export const fetchAnalyticsData = (from: string, to: string, granularity: string = "day") =>
   request<{
     total_views: number;
     unique_visitors: number;
@@ -397,4 +397,4 @@ export const fetchAnalyticsData = (from: string, to: string) =>
     referrer_raw: Record<string, number>;
     daily_views: { date: string; views: number; unique: number; returning: number; mobile: number; desktop: number }[];
     new_vs_returning: { new: number; returning: number };
-  }>(`analytics-data?from=${from}&to=${to}`);
+  }>(`analytics-data?from=${from}&to=${to}&granularity=${granularity}`);

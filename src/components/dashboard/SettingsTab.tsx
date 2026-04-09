@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Eye, EyeOff, Trash2, Star, Shield, RefreshCw, KeyRound, Download, Upload, Clock, Cloud, BarChart3, ChevronDown } from "lucide-react";
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from "recharts";
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, CartesianGrid } from "recharts";
 import {
   changePassword,
   fetchSettings,
@@ -105,6 +105,15 @@ export default function SettingsTab({ addToast, lastOnlineBackup, setLastOnlineB
 
   const toggleMetric = (key: string) => setChartMetrics((prev) => ({ ...prev, [key]: !prev[key] }));
 
+  const computeGranularity = (fromStr: string, toStr: string): string => {
+    const diffMs = new Date(toStr).getTime() - new Date(fromStr).getTime();
+    const diffDays = diffMs / (1000 * 60 * 60 * 24);
+    if (diffDays <= 1) return "hour";
+    if (diffDays <= 14) return "day";
+    if (diffDays <= 90) return "week";
+    return "month";
+  };
+
   // Permission flags from server
   const [isOwner, setIsOwner] = useState(false);
   const [isAdminUser, setIsAdminUser] = useState(false);
@@ -119,7 +128,8 @@ export default function SettingsTab({ addToast, lastOnlineBackup, setLastOnlineB
   // Analytics data fetch
   useEffect(() => {
     setAnalyticsLoading(true);
-    fetchAnalyticsData(analyticsFrom, analyticsTo)
+    const gran = computeGranularity(analyticsFrom, analyticsTo);
+    fetchAnalyticsData(analyticsFrom, analyticsTo, gran)
       .then(setAnalyticsData)
       .catch(() => {})
       .finally(() => setAnalyticsLoading(false));
@@ -508,17 +518,22 @@ export default function SettingsTab({ addToast, lastOnlineBackup, setLastOnlineB
 
             {/* Chart */}
             {analyticsData.daily_views.length > 0 && (
-              <div className="bg-stone-800 rounded-xl p-3 mb-4">
-                <ResponsiveContainer width="100%" height={180}>
-                  <AreaChart data={analyticsData.daily_views}>
+              <div className="bg-stone-800/50 rounded-xl p-3 mb-4">
+                <ResponsiveContainer width="100%" height={200}>
+                  <AreaChart data={analyticsData.daily_views} margin={{ top: 5, right: 5, bottom: 0, left: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#44403c" vertical={false} />
                     <XAxis
                       dataKey="date"
-                      tickFormatter={(d) => d.slice(5)}
                       tick={{ fontSize: 9, fill: "#78716c" }}
                       axisLine={false}
                       tickLine={false}
                     />
-                    <YAxis hide />
+                    <YAxis
+                      tick={{ fontSize: 9, fill: "#57534e" }}
+                      axisLine={false}
+                      tickLine={false}
+                      width={30}
+                    />
                     <Tooltip
                       contentStyle={{ background: "#1c1917", border: "1px solid #44403c", borderRadius: "0.75rem", fontSize: "12px" }}
                       labelStyle={{ color: "#a8a29e" }}

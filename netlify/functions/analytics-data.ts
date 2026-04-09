@@ -46,6 +46,7 @@ export default async (req: Request, _context: Context) => {
   const url = new URL(req.url);
   const from = url.searchParams.get("from") || "2000-01-01";
   const to = url.searchParams.get("to") || "2099-12-31";
+  const granularity = url.searchParams.get("granularity") || "day"; // hour | day | week | month
 
   const allVisits = await getAnalytics();
 
@@ -60,39 +61,62 @@ export default async (req: Request, _context: Context) => {
   const device = { mobile: 0, tablet: 0, desktop: 0 };
   const referrerGrouped: Record<string, number> = {};
   const referrerRaw: Record<string, number> = {};
-  const dailyMap: Record<string, { views: number; visitors: Set<string>; returning: number; mobile: number; desktop: number }> = {};
+  function getBucketKey(timestamp: string): string {
+    const d = new Date(timestamp);
+    if (granularity === "hour") return timestamp.slice(0, 13); // "2026-04-08T14"
+    if (granularity === "week") {
+      // ISO week: find Monday of the week
+      const day = d.getDay();
+      const monday = new Date(d);
+      monday.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
+      return monday.toISOString().split("T")[0];
+    }
+    if (granularity === "month") return timestamp.slice(0, 7); // "2026-04"
+    return timestamp.split("T")[0]; // day
+  }
+
+  function formatBucketLabel(key: string): string {
+    if (granularity === "hour") {
+      const h = parseInt(key.slice(11, 13), 10);
+      return h === 0 ? "12am" : h < 12 ? h + "am" : h === 12 ? "12pm" : (h - 12) + "pm";
+    }
+    if (granularity === "week") return "W " + key.slice(5); // "W 04-07"
+    if (granularity === "month") {
+      const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+      const m = parseInt(key.slice(5, 7), 10);
+      return months[m - 1] + " " + key.slice(0, 4);
+    }
+    return key.slice(5); // "04-08"
+  }
+
+  const bucketMap: Record<string, { views: number; visitors: Set<string>; returning: number; mobile: number; desktop: number; label: string }> = {};
   let newCount = 0;
   let returningCount = 0;
 
   for (const v of visits) {
-    // Device
     if (v.device_type in device) device[v.device_type as keyof typeof device] += 1;
 
-    // Referrers
     const group = groupReferrer(v.referrer);
     referrerGrouped[group] = (referrerGrouped[group] || 0) + 1;
-
     const raw = getRawDomain(v.referrer);
     referrerRaw[raw] = (referrerRaw[raw] || 0) + 1;
 
-    // Daily
-    const date = v.timestamp.split("T")[0];
-    if (!dailyMap[date]) dailyMap[date] = { views: 0, visitors: new Set(), returning: 0, mobile: 0, desktop: 0 };
-    dailyMap[date].views += 1;
-    dailyMap[date].visitors.add(v.visitor_id);
-    if (!v.is_new_visitor) dailyMap[date].returning += 1;
-    if (v.device_type === "mobile") dailyMap[date].mobile += 1;
-    if (v.device_type === "desktop") dailyMap[date].desktop += 1;
+    const key = getBucketKey(v.timestamp);
+    if (!bucketMap[key]) bucketMap[key] = { views: 0, visitors: new Set(), returning: 0, mobile: 0, desktop: 0, label: formatBucketLabel(key) };
+    bucketMap[key].views += 1;
+    bucketMap[key].visitors.add(v.visitor_id);
+    if (!v.is_new_visitor) bucketMap[key].returning += 1;
+    if (v.device_type === "mobile") bucketMap[key].mobile += 1;
+    if (v.device_type === "desktop") bucketMap[key].desktop += 1;
 
-    // New vs returning
     if (v.is_new_visitor) newCount++;
     else returningCount++;
   }
 
-  const daily_views = Object.entries(dailyMap)
+  const daily_views = Object.entries(bucketMap)
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([date, data]) => ({
-      date,
+    .map(([, data]) => ({
+      date: data.label,
       views: data.views,
       unique: data.visitors.size,
       returning: data.returning,
