@@ -395,6 +395,9 @@ export const fetchAnalyticsData = (from: string, to: string, granularity: string
     device_breakdown: { mobile: number; tablet: number; desktop: number };
     referrer_breakdown: Record<string, number>;
     referrer_raw: Record<string, number>;
-    daily_views: { date: string; views: number; unique: number; returning: number; mobile: number; desktop: number }[];
+    daily_views: { date: string; views: number; unique: number; returning: number; mobile: number; desktop: number; referrers: number; orders: number; verifications: number }[];
     new_vs_returning: { new: number; returning: number };
+    total_orders: number;
+    total_verifications: number;
+    total_referrers: number;
   }>(`analytics-data?from=${from}&to=${to}&granularity=${granularity}`);

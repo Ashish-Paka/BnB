@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef, useMemo } from "react";
-import { Eye, EyeOff, Trash2, Star, Shield, RefreshCw, KeyRound, Download, Upload, Clock, Cloud, BarChart3, ChevronDown } from "lucide-react";
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, CartesianGrid } from "recharts";
+import { useState, useEffect, useRef } from "react";
+import { Eye, EyeOff, Trash2, Star, Shield, RefreshCw, KeyRound, Download, Upload, Clock, Cloud, BarChart3 } from "lucide-react";
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import {
   changePassword,
   fetchSettings,
@@ -80,14 +80,15 @@ export default function SettingsTab({ addToast, lastOnlineBackup, setLastOnlineB
     return d.toISOString().split("T")[0];
   });
   const [analyticsTo, setAnalyticsTo] = useState(() => new Date().toISOString().split("T")[0]);
-  const [analyticsTab, setAnalyticsTab] = useState<"overview" | "devices" | "referrers">("overview");
-  const [showRawReferrers, setShowRawReferrers] = useState(false);
   const [chartMetrics, setChartMetrics] = useState<Record<string, boolean>>({
     views: true,
     unique: true,
     returning: false,
     mobile: false,
     desktop: false,
+    referrers: false,
+    orders: false,
+    verifications: false,
   });
 
   const applyRange = (range: "today" | "7d" | "30d" | "year" | "custom") => {
@@ -135,25 +136,16 @@ export default function SettingsTab({ addToast, lastOnlineBackup, setLastOnlineB
       .finally(() => setAnalyticsLoading(false));
   }, [analyticsFrom, analyticsTo]);
 
-  const CHART_COLORS = ["#f59e0b", "#ec4899", "#84cc16", "#8b5cf6", "#06b6d4", "#f97316"];
-  const deviceData = useMemo(() => {
-    if (!analyticsData) return [];
-    const { mobile, tablet, desktop } = analyticsData.device_breakdown;
-    return [
-      { name: "Mobile", value: mobile },
-      { name: "Tablet", value: tablet },
-      { name: "Desktop", value: desktop },
-    ].filter((d) => d.value > 0);
-  }, [analyticsData]);
-
-  const referrerData = useMemo(() => {
-    if (!analyticsData) return [];
-    const source = showRawReferrers ? analyticsData.referrer_raw : analyticsData.referrer_breakdown;
-    return Object.entries(source)
-      .sort((a, b) => (b[1] as number) - (a[1] as number))
-      .slice(0, 10)
-      .map(([name, value]) => ({ name, value: value as number }));
-  }, [analyticsData, showRawReferrers]);
+  const METRIC_CONFIG = [
+    { key: "views", label: "Views", color: "#f59e0b" },
+    { key: "unique", label: "Unique", color: "#ec4899" },
+    { key: "returning", label: "Return", color: "#8b5cf6" },
+    { key: "mobile", label: "Mobile", color: "#84cc16" },
+    { key: "desktop", label: "Desktop", color: "#06b6d4" },
+    { key: "referrers", label: "Referrals", color: "#f97316" },
+    { key: "orders", label: "Orders", color: "#14b8a6" },
+    { key: "verifications", label: "Visits", color: "#e879f9" },
+  ] as const;
 
   useEffect(() => {
     fetchSettings()
@@ -495,25 +487,31 @@ export default function SettingsTab({ addToast, lastOnlineBackup, setLastOnlineB
           <>
             {/* Metric toggles */}
             <div className="flex flex-wrap gap-1.5 mb-3">
-              {([
-                { key: "views", label: "Views", color: "#f59e0b", count: analyticsData.total_views },
-                { key: "unique", label: "Unique", color: "#ec4899", count: analyticsData.unique_visitors },
-                { key: "returning", label: "Return", color: "#8b5cf6", count: analyticsData.new_vs_returning.returning },
-                { key: "mobile", label: "Mobile", color: "#84cc16", count: analyticsData.device_breakdown.mobile },
-                { key: "desktop", label: "Desktop", color: "#06b6d4", count: analyticsData.device_breakdown.desktop },
-              ]).map(({ key, label, color, count }) => (
-                <button
-                  key={key}
-                  onClick={() => toggleMetric(key)}
-                  className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold transition-all ${
-                    chartMetrics[key] ? "text-white" : "text-stone-500 bg-stone-800/50"
-                  }`}
-                  style={chartMetrics[key] ? { background: color + "30", borderLeft: `2px solid ${color}` } : undefined}
-                >
-                  <span>{label}</span>
-                  <span className="tabular-nums">{count.toLocaleString()}</span>
-                </button>
-              ))}
+              {METRIC_CONFIG.map(({ key, label, color }) => {
+                const counts: Record<string, number> = {
+                  views: analyticsData.total_views,
+                  unique: analyticsData.unique_visitors,
+                  returning: analyticsData.new_vs_returning.returning,
+                  mobile: analyticsData.device_breakdown.mobile,
+                  desktop: analyticsData.device_breakdown.desktop,
+                  referrers: analyticsData.total_referrers,
+                  orders: analyticsData.total_orders,
+                  verifications: analyticsData.total_verifications,
+                };
+                return (
+                  <button
+                    key={key}
+                    onClick={() => toggleMetric(key)}
+                    className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold transition-all ${
+                      chartMetrics[key] ? "text-white" : "text-stone-500 bg-stone-800/50"
+                    }`}
+                    style={chartMetrics[key] ? { background: color + "30", borderLeft: `2px solid ${color}` } : undefined}
+                  >
+                    <span>{label}</span>
+                    <span className="tabular-nums">{(counts[key] ?? 0).toLocaleString()}</span>
+                  </button>
+                );
+              })}
             </div>
 
             {/* Chart */}
@@ -539,74 +537,13 @@ export default function SettingsTab({ addToast, lastOnlineBackup, setLastOnlineB
                       labelStyle={{ color: "#a8a29e" }}
                       itemStyle={{ color: "#f5f5f4" }}
                     />
-                    {chartMetrics.views && <Area type="monotone" dataKey="views" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.12} strokeWidth={2} name="Total Views" />}
-                    {chartMetrics.unique && <Area type="monotone" dataKey="unique" stroke="#ec4899" fill="#ec4899" fillOpacity={0.08} strokeWidth={2} name="Unique" />}
-                    {chartMetrics.returning && <Area type="monotone" dataKey="returning" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.08} strokeWidth={2} name="Returning" />}
-                    {chartMetrics.mobile && <Area type="monotone" dataKey="mobile" stroke="#84cc16" fill="#84cc16" fillOpacity={0.08} strokeWidth={2} name="Mobile" />}
-                    {chartMetrics.desktop && <Area type="monotone" dataKey="desktop" stroke="#06b6d4" fill="#06b6d4" fillOpacity={0.08} strokeWidth={2} name="Desktop" />}
+                    {METRIC_CONFIG.map(({ key, color, label }) =>
+                      chartMetrics[key] ? (
+                        <Area key={key} type="monotone" dataKey={key} stroke={color} fill={color} fillOpacity={0.1} strokeWidth={2} name={label} />
+                      ) : null
+                    )}
                   </AreaChart>
                 </ResponsiveContainer>
-              </div>
-            )}
-
-            {/* Devices + Referrers */}
-            <div className="flex gap-1 mb-3 bg-stone-800/60 rounded-lg p-0.5">
-              {(["devices", "referrers"] as const).map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setAnalyticsTab(tab)}
-                  className={`flex-1 py-1 rounded-md text-[10px] font-bold transition-all ${
-                    analyticsTab === tab ? "bg-stone-700 text-stone-200" : "text-stone-500 hover:text-stone-300"
-                  }`}
-                >
-                  {tab === "devices" ? "Devices" : "Referrers"}
-                </button>
-              ))}
-            </div>
-
-            {analyticsTab === "devices" && deviceData.length > 0 && (
-              <div className="bg-stone-800/40 rounded-xl p-3">
-                <ResponsiveContainer width="100%" height={170}>
-                  <PieChart>
-                    <Pie data={deviceData} cx="50%" cy="50%" innerRadius={45} outerRadius={70} dataKey="value"
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
-                      {deviceData.map((_, i) => (<Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />))}
-                    </Pie>
-                    <Tooltip contentStyle={{ background: "#1c1917", border: "1px solid #44403c", borderRadius: "0.75rem", fontSize: "11px" }} />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="flex justify-center gap-3 mt-1">
-                  {deviceData.map((d, i) => (
-                    <div key={d.name} className="flex items-center gap-1">
-                      <div className="w-2 h-2 rounded-full" style={{ background: CHART_COLORS[i] }} />
-                      <span className="text-[10px] text-stone-400">{d.name} {d.value}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {analyticsTab === "referrers" && (
-              <div className="bg-stone-800/40 rounded-xl p-3">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-[10px] text-stone-500 uppercase tracking-wider">Sources</p>
-                  <button onClick={() => setShowRawReferrers(!showRawReferrers)}
-                    className="text-[10px] text-stone-500 hover:text-stone-300">
-                    {showRawReferrers ? "Grouped" : "Domains"}
-                  </button>
-                </div>
-                {referrerData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={Math.min(referrerData.length * 28 + 10, 200)}>
-                    <BarChart data={referrerData} layout="vertical">
-                      <XAxis type="number" hide />
-                      <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: "#a8a29e" }} width={80} axisLine={false} tickLine={false} />
-                      <Tooltip contentStyle={{ background: "#1c1917", border: "1px solid #44403c", borderRadius: "0.75rem", fontSize: "11px" }} />
-                      <Bar dataKey="value" fill="#f59e0b" radius={[0, 4, 4, 0]} name="Visits" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <p className="text-stone-600 text-[10px] text-center py-3">No referrer data</p>
-                )}
               </div>
             )}
           </>
