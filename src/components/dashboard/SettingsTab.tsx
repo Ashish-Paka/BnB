@@ -455,63 +455,63 @@ export default function SettingsTab({ addToast, lastOnlineBackup, setLastOnlineB
   return (
     <div className="space-y-6 max-w-md mx-auto">
       {/* Site Analytics */}
-      <div className="p-5 rounded-2xl bg-stone-900 dark:bg-stone-900 border border-stone-700 shadow-sm text-white">
-        <div className="flex items-center gap-2 mb-4">
-          <BarChart3 className="w-5 h-5 text-brand-orange" />
-          <h3 className="font-bold text-white">Site Analytics</h3>
+      <div className="rounded-2xl bg-gradient-to-b from-stone-900 to-stone-950 border border-stone-800 shadow-lg text-white overflow-hidden">
+        {/* Header */}
+        <div className="px-5 pt-5 pb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <BarChart3 className="w-4 h-4 text-brand-orange" />
+            <h3 className="font-bold text-sm text-white">Analytics</h3>
+          </div>
+          <div className="flex gap-0.5 bg-stone-800/80 rounded-lg p-0.5">
+            {([["today", "1D"], ["7d", "7D"], ["30d", "30D"], ["year", "1Y"], ["custom", "..."]] as const).map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() => applyRange(key as any)}
+                className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${
+                  analyticsRange === key ? "bg-brand-orange text-stone-900" : "text-stone-500 hover:text-stone-300"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* Timeframe presets */}
-        <div className="flex gap-1 mb-3 bg-stone-800 rounded-xl p-1">
-          {([["today", "Today"], ["7d", "7 Days"], ["30d", "30 Days"], ["year", "Year"], ["custom", "Custom"]] as const).map(([key, label]) => (
-            <button
-              key={key}
-              onClick={() => applyRange(key as any)}
-              className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
-                analyticsRange === key ? "bg-brand-orange text-stone-900" : "text-stone-400 hover:text-stone-200"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {/* Custom date picker (only when custom selected) */}
+        {/* Custom date picker */}
         {analyticsRange === "custom" && (
-          <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center gap-2 px-5 pb-3">
             <input type="date" value={analyticsFrom} onChange={(e) => setAnalyticsFrom(e.target.value)}
-              className="flex-1 px-3 py-1.5 rounded-lg bg-stone-800 border border-stone-700 text-sm text-stone-200 outline-none" />
-            <span className="text-stone-500 text-xs">to</span>
+              className="flex-1 px-2.5 py-1 rounded-lg bg-stone-800 border border-stone-700 text-xs text-stone-200 outline-none" />
+            <span className="text-stone-600 text-[10px]">to</span>
             <input type="date" value={analyticsTo} onChange={(e) => setAnalyticsTo(e.target.value)}
-              className="flex-1 px-3 py-1.5 rounded-lg bg-stone-800 border border-stone-700 text-sm text-stone-200 outline-none" />
+              className="flex-1 px-2.5 py-1 rounded-lg bg-stone-800 border border-stone-700 text-xs text-stone-200 outline-none" />
           </div>
         )}
 
+        <div className="px-5 pb-5">
         {analyticsLoading ? (
-          <p className="text-stone-400 text-sm text-center py-4">Loading analytics...</p>
+          <p className="text-stone-500 text-xs text-center py-8">Loading...</p>
         ) : analyticsData ? (
           <>
-            {/* Metric checkboxes */}
-            <div className="flex flex-wrap gap-2 mb-4">
+            {/* Metric toggles */}
+            <div className="flex flex-wrap gap-1.5 mb-3">
               {([
-                { key: "views", label: "Total Views", color: "#f59e0b", count: analyticsData.total_views },
+                { key: "views", label: "Views", color: "#f59e0b", count: analyticsData.total_views },
                 { key: "unique", label: "Unique", color: "#ec4899", count: analyticsData.unique_visitors },
-                { key: "returning", label: "Returning", color: "#8b5cf6", count: analyticsData.new_vs_returning.returning },
+                { key: "returning", label: "Return", color: "#8b5cf6", count: analyticsData.new_vs_returning.returning },
                 { key: "mobile", label: "Mobile", color: "#84cc16", count: analyticsData.device_breakdown.mobile },
                 { key: "desktop", label: "Desktop", color: "#06b6d4", count: analyticsData.device_breakdown.desktop },
               ]).map(({ key, label, color, count }) => (
                 <button
                   key={key}
                   onClick={() => toggleMetric(key)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
-                    chartMetrics[key]
-                      ? "border-transparent text-stone-900"
-                      : "border-stone-700 bg-stone-800 text-stone-400"
+                  className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold transition-all ${
+                    chartMetrics[key] ? "text-white" : "text-stone-500 bg-stone-800/50"
                   }`}
-                  style={chartMetrics[key] ? { background: color } : undefined}
+                  style={chartMetrics[key] ? { background: color + "30", borderLeft: `2px solid ${color}` } : undefined}
                 >
                   <span>{label}</span>
-                  <span className={chartMetrics[key] ? "opacity-80" : "opacity-60"}>{count.toLocaleString()}</span>
+                  <span className="tabular-nums">{count.toLocaleString()}</span>
                 </button>
               ))}
             </div>
@@ -549,95 +549,71 @@ export default function SettingsTab({ addToast, lastOnlineBackup, setLastOnlineB
               </div>
             )}
 
-            {/* Tab navigation for details */}
-            <div className="flex gap-1 mb-3 bg-stone-800 rounded-xl p-1">
-              {(["overview", "devices", "referrers"] as const).map((tab) => (
+            {/* Devices + Referrers */}
+            <div className="flex gap-1 mb-3 bg-stone-800/60 rounded-lg p-0.5">
+              {(["devices", "referrers"] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setAnalyticsTab(tab)}
-                  className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  className={`flex-1 py-1 rounded-md text-[10px] font-bold transition-all ${
                     analyticsTab === tab ? "bg-stone-700 text-stone-200" : "text-stone-500 hover:text-stone-300"
                   }`}
                 >
-                  {tab === "overview" ? "Summary" : tab === "devices" ? "Devices" : "Referrers"}
+                  {tab === "devices" ? "Devices" : "Referrers"}
                 </button>
               ))}
             </div>
 
-            {/* Summary tab */}
-            {analyticsTab === "overview" && (
-              <div className="grid grid-cols-2 gap-2">
-                <div className="bg-stone-800 rounded-xl p-3 text-center">
-                  <p className="text-lg font-bold text-brand-olive">{analyticsData.new_vs_returning.new.toLocaleString()}</p>
-                  <p className="text-[10px] text-stone-400">New Visitors</p>
-                </div>
-                <div className="bg-stone-800 rounded-xl p-3 text-center">
-                  <p className="text-lg font-bold text-purple-400">{analyticsData.new_vs_returning.returning.toLocaleString()}</p>
-                  <p className="text-[10px] text-stone-400">Returning</p>
-                </div>
-                <div className="bg-stone-800 rounded-xl p-3 text-center">
-                  <p className="text-lg font-bold text-brand-olive">{analyticsData.device_breakdown.mobile.toLocaleString()}</p>
-                  <p className="text-[10px] text-stone-400">Mobile</p>
-                </div>
-                <div className="bg-stone-800 rounded-xl p-3 text-center">
-                  <p className="text-lg font-bold text-cyan-400">{analyticsData.device_breakdown.desktop.toLocaleString()}</p>
-                  <p className="text-[10px] text-stone-400">Desktop</p>
-                </div>
-              </div>
-            )}
-
-            {/* Devices tab */}
             {analyticsTab === "devices" && deviceData.length > 0 && (
-              <div className="bg-stone-800 rounded-xl p-4">
-                <ResponsiveContainer width="100%" height={200}>
+              <div className="bg-stone-800/40 rounded-xl p-3">
+                <ResponsiveContainer width="100%" height={170}>
                   <PieChart>
-                    <Pie data={deviceData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value"
+                    <Pie data={deviceData} cx="50%" cy="50%" innerRadius={45} outerRadius={70} dataKey="value"
                       label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
                       {deviceData.map((_, i) => (<Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />))}
                     </Pie>
-                    <Tooltip contentStyle={{ background: "#1c1917", border: "1px solid #44403c", borderRadius: "0.75rem", fontSize: "12px" }} />
+                    <Tooltip contentStyle={{ background: "#1c1917", border: "1px solid #44403c", borderRadius: "0.75rem", fontSize: "11px" }} />
                   </PieChart>
                 </ResponsiveContainer>
-                <div className="flex justify-center gap-4 mt-2">
+                <div className="flex justify-center gap-3 mt-1">
                   {deviceData.map((d, i) => (
-                    <div key={d.name} className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full" style={{ background: CHART_COLORS[i] }} />
-                      <span className="text-xs text-stone-400">{d.name}: {d.value}</span>
+                    <div key={d.name} className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full" style={{ background: CHART_COLORS[i] }} />
+                      <span className="text-[10px] text-stone-400">{d.name} {d.value}</span>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Referrers tab */}
             {analyticsTab === "referrers" && (
-              <div className="bg-stone-800 rounded-xl p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-[10px] text-stone-400 uppercase tracking-wider">Top Sources</p>
+              <div className="bg-stone-800/40 rounded-xl p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[10px] text-stone-500 uppercase tracking-wider">Sources</p>
                   <button onClick={() => setShowRawReferrers(!showRawReferrers)}
-                    className="flex items-center gap-1 text-[10px] text-stone-500 hover:text-stone-300">
-                    {showRawReferrers ? "Grouped" : "Raw domains"}
-                    <ChevronDown className="w-3 h-3" />
+                    className="text-[10px] text-stone-500 hover:text-stone-300">
+                    {showRawReferrers ? "Grouped" : "Domains"}
                   </button>
                 </div>
                 {referrerData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={referrerData.length * 32 + 10}>
+                  <ResponsiveContainer width="100%" height={Math.min(referrerData.length * 28 + 10, 200)}>
                     <BarChart data={referrerData} layout="vertical">
                       <XAxis type="number" hide />
-                      <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: "#a8a29e" }} width={90} axisLine={false} tickLine={false} />
-                      <Tooltip contentStyle={{ background: "#1c1917", border: "1px solid #44403c", borderRadius: "0.75rem", fontSize: "12px" }} />
+                      <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: "#a8a29e" }} width={80} axisLine={false} tickLine={false} />
+                      <Tooltip contentStyle={{ background: "#1c1917", border: "1px solid #44403c", borderRadius: "0.75rem", fontSize: "11px" }} />
                       <Bar dataKey="value" fill="#f59e0b" radius={[0, 4, 4, 0]} name="Visits" />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <p className="text-stone-500 text-sm text-center py-4">No referrer data yet</p>
+                  <p className="text-stone-600 text-[10px] text-center py-3">No referrer data</p>
                 )}
               </div>
             )}
           </>
         ) : (
-          <p className="text-stone-500 text-sm text-center py-4">No analytics data yet</p>
+          <p className="text-stone-600 text-xs text-center py-6">No data yet</p>
         )}
+        </div>
       </div>
 
       {/* Main Password — owner and admin */}
