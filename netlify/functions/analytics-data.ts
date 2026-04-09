@@ -93,6 +93,37 @@ export default async (req: Request, _context: Context) => {
   const bucketMap: Record<string, Bucket> = {};
   const makeBucket = (key: string): Bucket => ({ views: 0, visitors: new Set(), returning: 0, mobile: 0, desktop: 0, referrers: 0, orders: 0, verifications: 0, label: formatBucketLabel(key) });
 
+  // Pre-fill all buckets in range so x-axis is complete
+  if (granularity === "hour") {
+    for (let h = 0; h < 24; h++) {
+      const key = from + "T" + String(h).padStart(2, "0");
+      bucketMap[key] = makeBucket(key);
+    }
+  } else if (granularity === "day") {
+    const start = new Date(from);
+    const end = new Date(to);
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      const key = d.toISOString().split("T")[0];
+      bucketMap[key] = makeBucket(key);
+    }
+  } else if (granularity === "week") {
+    const start = new Date(from);
+    const day = start.getDay();
+    start.setDate(start.getDate() - (day === 0 ? 6 : day - 1));
+    const end = new Date(to);
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 7)) {
+      const key = d.toISOString().split("T")[0];
+      bucketMap[key] = makeBucket(key);
+    }
+  } else if (granularity === "month") {
+    const start = new Date(from);
+    const end = new Date(to);
+    for (let d = new Date(start.getFullYear(), start.getMonth(), 1); d <= end; d.setMonth(d.getMonth() + 1)) {
+      const key = d.toISOString().slice(0, 7);
+      bucketMap[key] = makeBucket(key);
+    }
+  }
+
   let newCount = 0;
   let returningCount = 0;
 
