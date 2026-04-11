@@ -14,6 +14,8 @@ import {
   restoreLatestBackup,
   fetchAnalyticsData,
   uploadMenuImage,
+  uploadCarouselImage,
+  uploadLogoImage,
 } from "../../lib/api";
 import {
   generateBackupZip,
@@ -354,6 +356,10 @@ export default function SettingsTab({ addToast, lastOnlineBackup, setLastOnlineB
           data.published_images ? `${Object.keys(data.published_images).length} published images` : null,
           data.persistent_codes?.length ? `${data.persistent_codes.length} verification codes` : null,
           data.analytics?.length ? `${data.analytics.length} analytics records` : null,
+          data.site_profile ? "site profile" : null,
+          data.carousel_images ? `${Object.keys(data.carousel_images).length} carousel images` : null,
+          data.logo_image ? "logo" : null,
+          data.walkthrough_video ? "walkthrough video" : null,
         ].filter(Boolean).join(", ");
         setPendingImport({ data, summary });
       })
@@ -372,8 +378,14 @@ export default function SettingsTab({ addToast, lastOnlineBackup, setLastOnlineB
       const data = JSON.parse(JSON.stringify(pendingImport.data));
       const images = data.images;
       const published_images = data.published_images;
+      const carousel_images = data.carousel_images;
+      const logo_image = data.logo_image;
+      const walkthrough_video = data.walkthrough_video;
       delete data.images;
       delete data.published_images;
+      delete data.carousel_images;
+      delete data.logo_image;
+      delete data.walkthrough_video;
 
       // Strip images embedded inside presets (they're huge base64 blobs)
       if (data.menu_presets?.presets) {
@@ -409,6 +421,49 @@ export default function SettingsTab({ addToast, lastOnlineBackup, setLastOnlineB
       if (mode === "overwrite") {
         await uploadImages(images, false);
         await uploadImages(published_images, true);
+
+        // Upload carousel images
+        if (carousel_images && typeof carousel_images === "object") {
+          for (const [id, imgData] of Object.entries(carousel_images) as [string, any][]) {
+            if (!imgData?.data || !imgData?.content_type) continue;
+            try {
+              const binary = atob(imgData.data);
+              const bytes = new Uint8Array(binary.length);
+              for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+              const blob = new Blob([bytes], { type: imgData.content_type });
+              await uploadCarouselImage(id, blob);
+              imageCount++;
+            } catch {}
+          }
+        }
+
+        // Upload logo
+        if (logo_image?.data && logo_image?.content_type) {
+          try {
+            const binary = atob(logo_image.data);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+            const blob = new Blob([bytes], { type: logo_image.content_type });
+            await uploadLogoImage(blob);
+            imageCount++;
+          } catch {}
+        }
+
+        // Upload walkthrough video
+        if (walkthrough_video?.data && walkthrough_video?.content_type) {
+          try {
+            const binary = atob(walkthrough_video.data);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+            const token = localStorage.getItem("owner_token");
+            const res = await fetch("/.netlify/functions/walkthrough-video", {
+              method: "POST",
+              headers: { "Content-Type": walkthrough_video.content_type, ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+              body: new Blob([bytes], { type: walkthrough_video.content_type }),
+            });
+            if (res.ok) imageCount++;
+          } catch {}
+        }
       }
 
       const label = mode === "combine" ? "Merged" : "Imported";
@@ -445,21 +500,21 @@ export default function SettingsTab({ addToast, lastOnlineBackup, setLastOnlineB
   };
 
   return (
-    <div className="space-y-6 max-w-md mx-auto">
+    <div className="space-y-6 max-w-md mx-auto min-w-0 overflow-hidden">
       {/* Site Analytics */}
       <div className="rounded-2xl bg-gradient-to-b from-stone-900 to-stone-950 border border-stone-800 shadow-lg text-white overflow-hidden">
         {/* Header */}
-        <div className="px-5 pt-5 pb-3 flex items-center justify-between">
+        <div className="px-5 pt-5 pb-3 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <BarChart3 className="w-4 h-4 text-brand-orange" />
             <h3 className="font-bold text-sm text-white">Analytics</h3>
           </div>
-          <div className="flex gap-0.5 bg-stone-800/80 rounded-lg p-0.5">
+          <div className="flex gap-0.5 bg-stone-800/80 rounded-lg p-0.5 shrink-0">
             {([["today", "1D"], ["7d", "7D"], ["30d", "30D"], ["year", "1Y"], ["custom", "..."]] as const).map(([key, label]) => (
               <button
                 key={key}
                 onClick={() => applyRange(key as any)}
-                className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${
+                className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all ${
                   analyticsRange === key ? "bg-brand-orange text-stone-900" : "text-stone-500 hover:text-stone-300"
                 }`}
               >

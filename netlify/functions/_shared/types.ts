@@ -121,6 +121,31 @@ export interface PersistentCode {
   created_at: string;
 }
 
+export interface SiteProfile {
+  carousel_images: string[];
+  address_text: string;
+  address_link: string;
+  address_enabled: boolean;
+  google_url: string;
+  google_enabled: boolean;
+  instagram_url: string;
+  instagram_enabled: boolean;
+  facebook_url: string;
+  facebook_enabled: boolean;
+  tiktok_url: string;
+  tiktok_enabled: boolean;
+  owner_names: string;
+  phone: string;
+  email: string;
+  contact_enabled: boolean;
+  shop_url: string;
+  shop_text: string;
+  shop_enabled: boolean;
+  walkthrough_enabled: boolean;
+  review_page_url: string;
+  review_page_enabled: boolean;
+}
+
 export interface AnalyticsVisit {
   visitor_id: string;
   timestamp: string;

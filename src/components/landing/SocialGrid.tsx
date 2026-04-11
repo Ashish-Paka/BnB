@@ -10,36 +10,76 @@ const GoogleGIcon = () => (
   </svg>
 );
 
-const socialLinks = [
-  {
-    name: "Reviews",
-    icon: <GoogleGIcon />,
-    url: "https://share.google/ywUaCuyd8boFskL5d",
-    color: "bg-white border-2 border-stone-200 dark:border-stone-600",
-  },
-  {
-    name: "Instagram",
-    icon: <Instagram className="w-8 h-8 md:w-10 md:h-10" />,
-    url: "https://www.instagram.com/bonesandbru?igsh=NWY3Znc0OTZ4cmty",
-    color: "bg-brand-pink",
-  },
-  {
-    name: "Facebook",
-    icon: <Facebook className="w-8 h-8 md:w-10 md:h-10" />,
-    url: "https://www.facebook.com/share/14WviUCEUSy/",
-    color: "bg-blue-600",
-  },
-  {
-    name: "TikTok",
-    icon: <img src="/tiktok logo.png" alt="TikTok" className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover" />,
-    url: "https://www.tiktok.com/@bonesandbru",
-    color: "bg-black",
-  },
-];
+interface SocialItem {
+  name: string;
+  icon: React.ReactNode;
+  url: string;
+  color: string;
+}
 
-export default function SocialGrid() {
+interface Props {
+  googleUrl?: string;
+  googleEnabled?: boolean;
+  instagramUrl?: string;
+  instagramEnabled?: boolean;
+  facebookUrl?: string;
+  facebookEnabled?: boolean;
+  tiktokUrl?: string;
+  tiktokEnabled?: boolean;
+}
+
+export default function SocialGrid({
+  googleUrl = "https://share.google/ywUaCuyd8boFskL5d",
+  googleEnabled = true,
+  instagramUrl = "https://www.instagram.com/bonesandbru?igsh=NWY3Znc0OTZ4cmty",
+  instagramEnabled = true,
+  facebookUrl = "https://www.facebook.com/share/14WviUCEUSy/",
+  facebookEnabled = true,
+  tiktokUrl = "https://www.tiktok.com/@bonesandbru",
+  tiktokEnabled = true,
+}: Props) {
+  const allLinks: (SocialItem & { enabled: boolean })[] = [
+    {
+      name: "Reviews",
+      icon: <GoogleGIcon />,
+      url: googleUrl,
+      color: "bg-white border-2 border-stone-200 dark:border-stone-600",
+      enabled: googleEnabled,
+    },
+    {
+      name: "Instagram",
+      icon: <Instagram className="w-8 h-8 md:w-10 md:h-10" />,
+      url: instagramUrl,
+      color: "bg-brand-pink",
+      enabled: instagramEnabled,
+    },
+    {
+      name: "Facebook",
+      icon: <Facebook className="w-8 h-8 md:w-10 md:h-10" />,
+      url: facebookUrl,
+      color: "bg-blue-600",
+      enabled: facebookEnabled,
+    },
+    {
+      name: "TikTok",
+      icon: <img src="/tiktok logo.png" alt="TikTok" className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover" />,
+      url: tiktokUrl,
+      color: "bg-black",
+      enabled: tiktokEnabled,
+    },
+  ];
+
+  const socialLinks = allLinks.filter((s) => s.enabled);
+  if (socialLinks.length === 0) return null;
+
+  const colsClass =
+    socialLinks.length === 1 ? "grid-cols-1" :
+    socialLinks.length === 2 ? "grid-cols-2" :
+    socialLinks.length === 3 ? "grid-cols-3" :
+    "grid-cols-4";
+
   return (
-    <div className="grid grid-cols-4 gap-2 sm:gap-4 md:gap-5 mb-12 md:mb-16 w-full">
+    <div className={`grid ${colsClass} gap-2 sm:gap-4 md:gap-5 mb-12 md:mb-16 w-full`}>
       {socialLinks.map((social, index) => (
         <motion.a
           key={social.name}

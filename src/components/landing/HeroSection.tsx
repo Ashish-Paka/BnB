@@ -1,35 +1,48 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "motion/react";
-import logo from "../../assets/logo.webp";
+import defaultLogo from "../../assets/logo.webp";
+import { getCarouselImageUrl, getLogoImageUrl } from "../../lib/api";
 
-const BACKGROUNDS = [
-  { type: "image", src: "/bg1.webp" },
-  { type: "image", src: "/coffeebar.jpeg" },
-  { type: "image", src: "/bru.webp" },
-  { type: "image", src: "/dogtreats.jpeg" },
-  { type: "image", src: "/shop.webp" },
+const DEFAULT_BACKGROUNDS = [
+  "/bg1.webp",
+  "/coffeebar.jpeg",
+  "/bru.webp",
+  "/dogtreats.jpeg",
+  "/shop.webp",
 ];
 
-export default function HeroSection() {
+interface Props {
+  images?: string[];
+  hasCustomLogo?: boolean;
+}
+
+function resolveImageSrc(src: string) {
+  return src.startsWith("carousel:") ? getCarouselImageUrl(src.slice(9)) : src;
+}
+
+export default function HeroSection({ images, hasCustomLogo }: Props) {
+  const backgrounds = (images && images.length > 0 ? images : DEFAULT_BACKGROUNDS).map(resolveImageSrc);
   const [bgIndex, setBgIndex] = useState(0);
   const prevBgIndexRef = useRef(0);
+  const logoSrc = hasCustomLogo ? `${getLogoImageUrl()}?t=1` : defaultLogo;
 
   useEffect(() => {
+    if (backgrounds.length <= 1) return;
     const timer = setInterval(() => {
       setBgIndex((prev) => {
         prevBgIndexRef.current = prev;
-        return (prev + 1) % BACKGROUNDS.length;
+        return (prev + 1) % backgrounds.length;
       });
     }, 5000);
     return () => clearInterval(timer);
-  }, []);
+  }, [backgrounds.length]);
 
   return (
     <>
       {/* Hero Header Section with Scrolling Background */}
       <div className="relative z-[1] w-full h-[50dvh] min-h-[420px] max-h-[600px] flex items-center justify-center overflow-hidden rounded-b-[2.5rem] md:rounded-b-[4rem] shadow-xl">
         <div className="absolute inset-0 overflow-hidden bg-stone-900 border-b-0 flex items-center justify-center">
-          {BACKGROUNDS.map((bg, idx) => {
+          {backgrounds.map((src, idx) => {
             const isActive = idx === bgIndex;
             const isOutgoing = idx === prevBgIndexRef.current;
             const shouldAnimate = isActive || isOutgoing;
@@ -56,7 +69,7 @@ export default function HeroSection() {
                 }}
               >
                 <img
-                  src={bg.src}
+                  src={src}
                   className="absolute inset-0 w-full h-full object-contain"
                   alt={`Background ${idx + 1}`}
                   loading="eager"
@@ -70,7 +83,7 @@ export default function HeroSection() {
         <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[var(--bg-color)] to-transparent z-10 pointer-events-none" />
       </div>
 
-      {/* Logo — 25% bigger, z-[5] so popups (z-200+) go over it, no border, red ring is the edge */}
+      {/* Logo */}
       <motion.div
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -79,7 +92,7 @@ export default function HeroSection() {
       >
         <div className="rounded-full shadow-2xl flex items-center justify-center w-52 h-52 sm:w-60 sm:h-60 md:w-72 md:h-72 transition-all duration-300 mx-auto group hover:scale-105 overflow-hidden">
           <img
-            src={logo}
+            src={logoSrc}
             alt="Bones & Bru Logo"
             className="w-full h-full object-cover"
           />

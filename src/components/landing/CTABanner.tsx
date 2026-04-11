@@ -1,10 +1,18 @@
 import { motion } from "motion/react";
 import { Coffee, PawPrint, ExternalLink } from "lucide-react";
 
-export default function CTABanner() {
+interface Props {
+  shopUrl?: string;
+  shopText?: string;
+  shopEnabled?: boolean;
+}
+
+export default function CTABanner({ shopUrl = "https://bonesandbru.com/", shopText = "Visit Bonesandbru.com", shopEnabled = true }: Props) {
+  if (!shopEnabled) return null;
+
   return (
     <motion.a
-      href="https://bonesandbru.com/"
+      href={shopUrl}
       target="_blank"
       rel="noopener noreferrer"
       initial={{ opacity: 0, y: 20 }}
@@ -33,7 +41,7 @@ export default function CTABanner() {
         {/* Text content on the right */}
         <div className="flex-1 min-w-0">
           <h3 className="font-serif font-black mb-2 leading-snug drop-shadow-md" style={{ fontSize: "clamp(1rem, 4.5vw, 1.75rem)" }}>
-            Visit Bonesandbru.com
+            {shopText}
           </h3>
           <div className="inline-flex items-center justify-center gap-1.5 sm:gap-2 bg-white text-brand-olive px-4 py-2 sm:px-5 sm:py-2.5 md:px-6 md:py-3 rounded-full font-bold text-sm sm:text-base shadow-xl hover:shadow-2xl transition-all hover:-translate-y-1">
             <span>Shop Online</span>

@@ -39,6 +39,26 @@ export async function generateBackupZip(data: any): Promise<Blob> {
   if (data.persistent_codes) zip.file("persistent-codes.json", JSON.stringify(data.persistent_codes, null, 2));
   if (data.analytics) zip.file("analytics.json", JSON.stringify(data.analytics, null, 2));
 
+  // Site profile data
+  if (data.site_profile) zip.file("site-profile.json", JSON.stringify(data.site_profile, null, 2));
+  if (data.carousel_images) {
+    const carouselFolder = zip.folder("carousel-images");
+    for (const [id, imgData] of Object.entries(data.carousel_images) as [string, any][]) {
+      if (imgData?.data) {
+        const ext = imgData.content_type?.includes("jpeg") ? "jpg" : "webp";
+        carouselFolder?.file(`${id}.${ext}`, imgData.data, { base64: true });
+      }
+    }
+  }
+  if (data.logo_image?.data) {
+    const ext = data.logo_image.content_type?.includes("jpeg") ? "jpg" : "webp";
+    zip.file(`logo.${ext}`, data.logo_image.data, { base64: true });
+  }
+  if (data.walkthrough_video?.data) {
+    const ext = data.walkthrough_video.content_type?.includes("mp4") ? "mp4" : "webm";
+    zip.file(`walkthrough.${ext}`, data.walkthrough_video.data, { base64: true });
+  }
+
   // Add images
   if (data.images) {
     const imgFolder = zip.folder("images");
@@ -137,6 +157,18 @@ export function validateBackupJSON(data: unknown): { valid: boolean; errors: str
   }
   if (d.persistent_codes && !Array.isArray(d.persistent_codes)) errors.push("persistent_codes should be an array");
   if (d.analytics && !Array.isArray(d.analytics)) errors.push("analytics should be an array");
+  if (d.site_profile && (typeof d.site_profile !== "object" || Array.isArray(d.site_profile))) {
+    errors.push("site_profile should be an object");
+  }
+  if (d.carousel_images && (typeof d.carousel_images !== "object" || Array.isArray(d.carousel_images))) {
+    errors.push("carousel_images should be an object");
+  }
+  if (d.logo_image && (typeof d.logo_image !== "object" || Array.isArray(d.logo_image))) {
+    errors.push("logo_image should be an object");
+  }
+  if (d.walkthrough_video && (typeof d.walkthrough_video !== "object" || Array.isArray(d.walkthrough_video))) {
+    errors.push("walkthrough_video should be an object");
+  }
   if (
     !d.menu &&
     !d.menu_ordering &&
@@ -148,7 +180,8 @@ export function validateBackupJSON(data: unknown): { valid: boolean; errors: str
     !d.visits &&
     !d.config &&
     !d.persistent_codes &&
-    !d.analytics
+    !d.analytics &&
+    !d.site_profile
   ) {
     errors.push("No recognizable data keys found");
   }

@@ -7,6 +7,7 @@ import {
   UtensilsCrossed,
   QrCode,
   Settings,
+  Store,
   LogOut,
   Trash2,
   RotateCcw,
@@ -29,8 +30,9 @@ import CustomersTab from "../components/dashboard/CustomersTab";
 import MenuTab from "../components/dashboard/MenuTab";
 import OTPTab from "../components/dashboard/OTPTab";
 import SettingsTab from "../components/dashboard/SettingsTab";
+import ProfileTab from "../components/dashboard/ProfileTab";
 
-type Tab = "otp" | "orders" | "pos" | "customers" | "menu" | "settings";
+type Tab = "otp" | "orders" | "pos" | "customers" | "menu" | "profile" | "settings";
 
 type OrderSourceFilter = "all" | "customer" | "owner";
 type OrderStatusFilter =
@@ -367,6 +369,7 @@ export default function DashboardPage() {
       label: "Menu",
       icon: <UtensilsCrossed className="w-5 h-5" />,
     },
+    { id: "profile", label: "Profile", icon: <Store className="w-5 h-5" /> },
     { id: "settings", label: "Settings", icon: <Settings className="w-5 h-5" /> },
   ];
 
@@ -530,7 +533,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Content */}
-      <div className="max-w-5xl mx-auto px-4 py-6">
+      <div className="max-w-5xl mx-auto px-4 py-6 min-w-0 overflow-x-hidden">
         {/* QR/OTP TAB (first) */}
         {activeTab === "otp" && <OTPTab />}
 
@@ -747,6 +750,11 @@ export default function DashboardPage() {
 
         {/* MENU TAB */}
         {activeTab === "menu" && <MenuTab addToast={addToast} />}
+
+        {/* PROFILE TAB */}
+        {activeTab === "profile" && (
+          <ProfileTab addToast={addToast} />
+        )}
 
         {/* SETTINGS TAB */}
         {activeTab === "settings" && (

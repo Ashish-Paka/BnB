@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X, Plus, Minus, ShoppingBag, User } from "lucide-react";
+import { X, Plus, Minus, ShoppingBag, User, ChevronLeft, ChevronRight } from "lucide-react";
 import { fetchPublicMenu, createOrder, getMenuImageUrl, fetchPublicMenuOrdering } from "../../lib/api";
 import { useCart } from "../../contexts/CartContext";
 import type { MenuItem, MenuOrdering } from "../../lib/types";
@@ -28,6 +28,38 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId, 
   const cart = useCart();
   const categories = useMemo(() => deriveCategories(menu, ordering.category_order), [menu, ordering]);
   const orderingRef = useRef(ordering);
+  const catScrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const checkCatScroll = useCallback(() => {
+    const el = catScrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 0);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+  }, []);
+
+  useEffect(() => {
+    const el = catScrollRef.current;
+    if (!el) return;
+    checkCatScroll();
+    el.addEventListener("scroll", checkCatScroll, { passive: true });
+    const ro = new ResizeObserver(checkCatScroll);
+    ro.observe(el);
+    return () => { el.removeEventListener("scroll", checkCatScroll); ro.disconnect(); };
+  }, [categories, checkCatScroll]);
+
+  const scrollCats = (dir: "left" | "right") => {
+    const el = catScrollRef.current;
+    if (!el) return;
+    if (dir === "right" && el.scrollLeft + el.clientWidth >= el.scrollWidth - 1) {
+      el.scrollTo({ left: 0, behavior: "smooth" });
+    } else if (dir === "left" && el.scrollLeft <= 0) {
+      el.scrollTo({ left: el.scrollWidth, behavior: "smooth" });
+    } else {
+      el.scrollBy({ left: dir === "left" ? -150 : 150, behavior: "smooth" });
+    }
+  };
 
   useEffect(() => {
     orderingRef.current = ordering;
@@ -291,20 +323,38 @@ export default function MenuOverlay({ open, onClose, onOrderPlaced, customerId, 
       </div>
 
       {/* Category tabs */}
-      <div className="sticky top-[53px] z-[9] bg-[var(--bg-color-95)] backdrop-blur-md border-b border-stone-300 dark:border-stone-700 px-4 py-3 flex gap-2 overflow-x-auto overscroll-x-contain will-change-transform">
-        {categories.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => setActiveCategory(cat)}
-            className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all ${
-              activeCategory === cat
-                ? "bg-brand-olive text-white shadow-md"
-                : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-700 shadow-xs"
-            }`}
-          >
-            {categoryLabel(cat)}
-          </button>
-        ))}
+      <div className="sticky top-[53px] z-[9] bg-[var(--bg-color-95)] backdrop-blur-md border-b border-stone-300 dark:border-stone-700 will-change-transform">
+        <div
+          ref={catScrollRef}
+          className="px-4 py-3 flex gap-2 overflow-x-auto overscroll-x-contain scrollbar-hide"
+        >
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setActiveCategory(cat)}
+              className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all ${
+                activeCategory === cat
+                  ? "bg-brand-olive text-white shadow-md"
+                  : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-700 shadow-xs"
+              }`}
+            >
+              {categoryLabel(cat)}
+            </button>
+          ))}
+        </div>
+        {(canScrollLeft || canScrollRight) && (
+          <div className="flex justify-center pb-2">
+            <div className="inline-flex items-center bg-brand-olive/10 rounded-full px-2 py-0.5 gap-1">
+              <button onClick={() => scrollCats("left")} className="text-brand-olive disabled:opacity-30" disabled={!canScrollLeft}>
+                <ChevronLeft className="w-3 h-3" />
+              </button>
+              <span className="text-[9px] font-bold text-brand-olive uppercase tracking-wider">scroll</span>
+              <button onClick={() => scrollCats("right")} className="text-brand-olive disabled:opacity-30" disabled={!canScrollRight}>
+                <ChevronRight className="w-3 h-3" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Menu items in the saved mixed layout */}

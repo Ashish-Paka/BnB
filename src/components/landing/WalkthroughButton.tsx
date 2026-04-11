@@ -1,9 +1,18 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Play, X } from "lucide-react";
+import { getWalkthroughVideoUrl } from "../../lib/api";
 
-export default function WalkthroughButton() {
+interface Props {
+  walkthroughEnabled?: boolean;
+  hasCustomVideo?: boolean;
+}
+
+export default function WalkthroughButton({ walkthroughEnabled = true, hasCustomVideo }: Props) {
   const [showVideoModal, setShowVideoModal] = useState(false);
+  const videoSrc = hasCustomVideo ? getWalkthroughVideoUrl() : "/video.mp4";
+
+  if (!walkthroughEnabled) return null;
 
   return (
     <>
@@ -44,7 +53,7 @@ export default function WalkthroughButton() {
               className="relative w-full max-w-4xl aspect-[9/16] sm:aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl border border-white/10"
             >
               <video
-                src="/video.mp4"
+                src={videoSrc}
                 controls
                 autoPlay
                 className="w-full h-full object-contain"

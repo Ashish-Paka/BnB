@@ -52,6 +52,27 @@ export async function createBackupArchive(data: any): Promise<BackupArchive> {
     }
   }
 
+  if (data.site_profile) zip.file("site-profile.json", JSON.stringify(data.site_profile, null, 2));
+
+  if (data.carousel_images) {
+    const carouselFolder = zip.folder("carousel-images");
+    for (const [id, imgData] of Object.entries(data.carousel_images) as [string, any][]) {
+      if (!imgData?.data) continue;
+      const ext = imgData.content_type?.includes("jpeg") ? "jpg" : "webp";
+      carouselFolder?.file(`${id}.${ext}`, imgData.data, { base64: true });
+    }
+  }
+
+  if (data.logo_image?.data) {
+    const ext = data.logo_image.content_type?.includes("jpeg") ? "jpg" : "webp";
+    zip.file(`logo.${ext}`, data.logo_image.data, { base64: true });
+  }
+
+  if (data.walkthrough_video?.data) {
+    const ext = data.walkthrough_video.content_type?.includes("mp4") ? "mp4" : "webm";
+    zip.file(`walkthrough.${ext}`, data.walkthrough_video.data, { base64: true });
+  }
+
   const zipBase64 = await zip.generateAsync({ type: "base64" });
   return {
     exported_at: data.exported_at ?? new Date().toISOString(),

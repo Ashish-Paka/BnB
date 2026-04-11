@@ -4,10 +4,16 @@ import {
   getBackup,
   getBackupImages,
   getBackupPublishedImages,
+  getBackupCarouselImages,
+  getBackupLogoImage,
+  getBackupWalkthroughVideo,
   getConfig,
   ensureMigrated,
   setMenuImage,
   setPublishedMenuImage,
+  setCarouselImage,
+  setLogoImage,
+  setWalkthroughVideo,
 } from "./_shared/store.js";
 import { restoreBackupData } from "./_shared/backup-data.js";
 
@@ -50,9 +56,12 @@ export default async (req: Request, _context: Context) => {
   // Restore images individually from separate blob keys
   let imageCount = 0;
   try {
-    const [images, publishedImages] = await Promise.all([
+    const [images, publishedImages, carouselImages, logoImg, walkthroughVid] = await Promise.all([
       getBackupImages(),
       getBackupPublishedImages(),
+      getBackupCarouselImages(),
+      getBackupLogoImage(),
+      getBackupWalkthroughVideo(),
     ]);
 
     for (const [itemId, imgData] of Object.entries(images)) {
@@ -71,6 +80,37 @@ export default async (req: Request, _context: Context) => {
         const buffer = Buffer.from(imgData.data, "base64");
         const arrayBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
         await setPublishedMenuImage(itemId, arrayBuffer, imgData.content_type);
+        imageCount++;
+      } catch {}
+    }
+
+    // Restore carousel images
+    for (const [id, imgData] of Object.entries(carouselImages)) {
+      if (!imgData?.data || !imgData?.content_type) continue;
+      try {
+        const buffer = Buffer.from(imgData.data, "base64");
+        const arrayBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+        await setCarouselImage(id, arrayBuffer, imgData.content_type);
+        imageCount++;
+      } catch {}
+    }
+
+    // Restore logo
+    if (logoImg?.data && logoImg?.content_type) {
+      try {
+        const buffer = Buffer.from(logoImg.data, "base64");
+        const arrayBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+        await setLogoImage(arrayBuffer, logoImg.content_type);
+        imageCount++;
+      } catch {}
+    }
+
+    // Restore walkthrough video
+    if (walkthroughVid?.data && walkthroughVid?.content_type) {
+      try {
+        const buffer = Buffer.from(walkthroughVid.data, "base64");
+        const arrayBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+        await setWalkthroughVideo(arrayBuffer, walkthroughVid.content_type);
         imageCount++;
       } catch {}
     }

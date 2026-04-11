@@ -19,6 +19,13 @@ import {
   setBackupPublishedImages,
   getPersistentCodes,
   getAnalytics,
+  getSiteProfile,
+  getCarouselImage,
+  getLogoImage,
+  getWalkthroughVideo,
+  setBackupCarouselImages,
+  setBackupLogoImage,
+  setBackupWalkthroughVideo,
 } from "./_shared/store.js";
 import { createBackupArchive } from "./_shared/backup-archive.js";
 import { ensureMenuPresets } from "./_shared/menu-presets.js";
@@ -90,6 +97,37 @@ export default async (req: Request, _context: Context) => {
     })
   );
 
+  // Site profile + media
+  const site_profile = await getSiteProfile();
+
+  const carousel_images: Record<string, { data: string; content_type: string }> = {};
+  for (const src of site_profile.carousel_images) {
+    if (!src.startsWith("carousel:")) continue;
+    const id = src.slice(9);
+    try {
+      const img = await getCarouselImage(id);
+      if (img) {
+        carousel_images[id] = { data: Buffer.from(img.data).toString("base64"), content_type: img.contentType };
+      }
+    } catch {}
+  }
+
+  let logo_image: { data: string; content_type: string } | null = null;
+  try {
+    const logo = await getLogoImage();
+    if (logo) {
+      logo_image = { data: Buffer.from(logo.data).toString("base64"), content_type: logo.contentType };
+    }
+  } catch {}
+
+  let walkthrough_video: { data: string; content_type: string } | null = null;
+  try {
+    const video = await getWalkthroughVideo();
+    if (video) {
+      walkthrough_video = { data: Buffer.from(video.data).toString("base64"), content_type: video.contentType };
+    }
+  } catch {}
+
   const sanitizedMenuOrdering = sanitizeMenuOrdering(menu_ordering, menu);
   const resolvedPublishedMenu = published_menu ?? menu;
   const sanitizedPublishedOrdering = sanitizeMenuOrdering(
@@ -120,6 +158,10 @@ export default async (req: Request, _context: Context) => {
     published_images,
     persistent_codes,
     analytics,
+    site_profile,
+    carousel_images,
+    logo_image,
+    walkthrough_video,
     exported_at: new Date().toISOString(),
   };
 
@@ -127,9 +169,9 @@ export default async (req: Request, _context: Context) => {
   // Save data and images SEPARATELY to avoid exceeding blob/stream size limits
   const url = new URL(req.url);
   if (url.searchParams.get("save") === "true") {
-    const { images: imgData, published_images: pubImgData, ...dataWithoutImages } = data;
+    const { images: imgData, published_images: pubImgData, carousel_images: carImg, logo_image: logoImg, walkthrough_video: wtVideo, ...dataWithoutMedia } = data;
     // Strip preset images too (they're large base64 blobs)
-    const liteData = JSON.parse(JSON.stringify(dataWithoutImages));
+    const liteData = JSON.parse(JSON.stringify(dataWithoutMedia));
     if (liteData.menu_presets?.presets) {
       for (const p of liteData.menu_presets.presets) {
         if (p.images) p.images = {};
@@ -140,6 +182,9 @@ export default async (req: Request, _context: Context) => {
       setBackup(liteData),
       setBackupImages(imgData || {}),
       setBackupPublishedImages(pubImgData || {}),
+      setBackupCarouselImages(carImg || {}),
+      setBackupLogoImage(logoImg || null),
+      setBackupWalkthroughVideo(wtVideo || null),
     ]);
   }
 

@@ -184,8 +184,8 @@ export default function OTPTab() {
       {otpData ? (
         <>
           {/* Code display */}
-          <div className="bg-white dark:bg-stone-900 rounded-3xl shadow-xl border border-stone-300 dark:border-stone-700 px-8 py-6 md:px-12 md:py-8 mb-4">
-            <p className="text-5xl md:text-7xl font-mono font-black tracking-[0.3em] text-brand-orange text-center select-all">
+          <div className="bg-white dark:bg-stone-900 rounded-3xl shadow-xl border border-stone-300 dark:border-stone-700 px-4 sm:px-8 md:px-12 py-6 md:py-8 mb-4 overflow-hidden">
+            <p className="text-[clamp(1.75rem,8vw,4.5rem)] font-mono font-black tracking-[0.2em] sm:tracking-[0.3em] text-brand-orange text-center select-all">
               {otpData.code}
             </p>
           </div>

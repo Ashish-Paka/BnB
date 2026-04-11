@@ -1,4 +1,4 @@
-import type { MenuItem, MenuOrdering, MenuPresetState, Order, Customer, Visit, PersistentCode } from "./types";
+import type { MenuItem, MenuOrdering, MenuPresetState, Order, Customer, Visit, PersistentCode, SiteProfile } from "./types";
 
 const API_BASE = "/.netlify/functions";
 
@@ -401,3 +401,53 @@ export const fetchAnalyticsData = (from: string, to: string, granularity: string
     total_verifications: number;
     total_referrers: number;
   }>(`analytics-data?from=${from}&to=${to}&granularity=${granularity}`);
+
+// Site profile
+export const fetchSiteProfile = () => publicRequest<SiteProfile>("site-profile");
+export const updateSiteProfile = (updates: Partial<SiteProfile>) =>
+  request<SiteProfile>("site-profile", { method: "PUT", body: JSON.stringify(updates) });
+
+// Carousel images
+export const getCarouselImageUrl = (id: string) => `${API_BASE}/carousel-image?id=${id}`;
+export async function uploadCarouselImage(id: string, imageBlob: Blob): Promise<void> {
+  const token = localStorage.getItem("owner_token");
+  const res = await fetch(`${API_BASE}/carousel-image?id=${id}`, {
+    method: "POST",
+    headers: { "Content-Type": imageBlob.type, ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body: imageBlob,
+  });
+  if (!res.ok) throw new Error(await res.text());
+}
+export async function deleteCarouselImageApi(id: string): Promise<void> {
+  await request<{ success: boolean }>(`carousel-image?id=${id}`, { method: "DELETE" });
+}
+
+// Logo image
+export const getLogoImageUrl = () => `${API_BASE}/logo-image`;
+export async function uploadLogoImage(imageBlob: Blob): Promise<void> {
+  const token = localStorage.getItem("owner_token");
+  const res = await fetch(`${API_BASE}/logo-image`, {
+    method: "POST",
+    headers: { "Content-Type": imageBlob.type, ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body: imageBlob,
+  });
+  if (!res.ok) throw new Error(await res.text());
+}
+export async function deleteLogoImageApi(): Promise<void> {
+  await request<{ success: boolean }>("logo-image", { method: "DELETE" });
+}
+
+// Walkthrough video
+export const getWalkthroughVideoUrl = () => `${API_BASE}/walkthrough-video`;
+export async function uploadWalkthroughVideo(videoBlob: Blob): Promise<void> {
+  const token = localStorage.getItem("owner_token");
+  const res = await fetch(`${API_BASE}/walkthrough-video`, {
+    method: "POST",
+    headers: { "Content-Type": videoBlob.type, ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body: videoBlob,
+  });
+  if (!res.ok) throw new Error(await res.text());
+}
+export async function deleteWalkthroughVideoApi(): Promise<void> {
+  await request<{ success: boolean }>("walkthrough-video", { method: "DELETE" });
+}

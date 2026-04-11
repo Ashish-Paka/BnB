@@ -14,7 +14,8 @@ import RewardsBanner from "../components/rewards/RewardsBanner";
 import InCafeBanner from "../components/order/InCafeBanner";
 import MenuOverlay from "../components/order/MenuOverlay";
 import { useCart } from "../contexts/CartContext";
-import { fetchOrderStatus, checkRewards, fetchPublicConfig, trackVisit } from "../lib/api";
+import { fetchOrderStatus, checkRewards, fetchPublicConfig, trackVisit, fetchSiteProfile, getLogoImageUrl, getWalkthroughVideoUrl } from "../lib/api";
+import type { SiteProfile } from "../lib/types";
 
 function getStoredCustomerId(): string | null {
   try {
@@ -46,6 +47,9 @@ export default function CustomerPage() {
   const cart = useCart();
 
   const [orderingEnabled, setOrderingEnabled] = useState(false);
+  const [profile, setProfile] = useState<SiteProfile | null>(null);
+  const [hasCustomLogo, setHasCustomLogo] = useState(false);
+  const [hasCustomVideo, setHasCustomVideo] = useState(false);
 
   // Order tracking state
   const [activeOrderId, setActiveOrderId] = useState<string | null>(() =>
@@ -141,6 +145,21 @@ export default function CustomerPage() {
     };
   }, [refreshPublicConfig]);
 
+  // Fetch site profile
+  useEffect(() => {
+    fetchSiteProfile().then(setProfile).catch(() => {});
+    fetch(getLogoImageUrl(), { method: "HEAD" })
+      .then((r) => setHasCustomLogo(r.ok))
+      .catch(() => {});
+    fetch(getWalkthroughVideoUrl(), { method: "HEAD" })
+      .then((r) => setHasCustomVideo(r.ok))
+      .catch(() => {});
+    const id = setInterval(() => {
+      fetchSiteProfile().then(setProfile).catch(() => {});
+    }, 10_000);
+    return () => clearInterval(id);
+  }, []);
+
   // Analytics tracking
   useEffect(() => {
     let visitorId = localStorage.getItem("bnb_visitor_id");
@@ -222,7 +241,7 @@ export default function CustomerPage() {
   return (
     <>
       <div className="min-h-screen flex flex-col items-center relative overflow-hidden bg-[var(--bg-color)]">
-        <HeroSection />
+        <HeroSection images={profile?.carousel_images} hasCustomLogo={hasCustomLogo} />
         <FloatingDecorations />
         <div className="absolute top-4 right-4 md:top-8 md:right-8 z-50 flex items-center gap-2">
           <InstallButton />
@@ -241,7 +260,7 @@ export default function CustomerPage() {
           />
 
           {/* Order Online (existing CTA) */}
-          <CTABanner />
+          <CTABanner shopUrl={profile?.shop_url} shopText={profile?.shop_text} shopEnabled={profile?.shop_enabled} />
 
           {/* Order In-Cafe */}
           <InCafeBanner
@@ -252,13 +271,22 @@ export default function CustomerPage() {
           />
 
           {/* Social Links */}
-          <SocialGrid />
+          <SocialGrid
+            googleUrl={profile?.google_url} googleEnabled={profile?.google_enabled}
+            instagramUrl={profile?.instagram_url} instagramEnabled={profile?.instagram_enabled}
+            facebookUrl={profile?.facebook_url} facebookEnabled={profile?.facebook_enabled}
+            tiktokUrl={profile?.tiktok_url} tiktokEnabled={profile?.tiktok_enabled}
+          />
 
           {/* Virtual Walkthrough */}
-          <WalkthroughButton />
+          <WalkthroughButton walkthroughEnabled={profile?.walkthrough_enabled} hasCustomVideo={hasCustomVideo} />
 
           {/* Footer */}
-          <Footer />
+          <Footer
+            addressText={profile?.address_text} addressLink={profile?.address_link} addressEnabled={profile?.address_enabled}
+            ownerNames={profile?.owner_names} phone={profile?.phone} email={profile?.email} contactEnabled={profile?.contact_enabled}
+            reviewPageUrl={profile?.review_page_url} reviewPageEnabled={profile?.review_page_enabled}
+          />
         </main>
       </div>
 

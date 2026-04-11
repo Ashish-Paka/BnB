@@ -9,6 +9,7 @@ import type {
   MenuPresetStore,
   PersistentCode,
   AnalyticsVisit,
+  SiteProfile,
 } from "./types.js";
 
 const STORE_NAME = "bnb-data";
@@ -121,6 +122,90 @@ export async function setPublishedMenuImage(itemId: string, data: ArrayBuffer, c
   const s = store();
   await s.set(`menu-image-published-${itemId}`, new Uint8Array(data), { metadata: { content_type: contentType } });
 }
+
+// Site profile
+const DEFAULT_SITE_PROFILE: SiteProfile = {
+  carousel_images: ["/bg1.webp", "/coffeebar.jpeg", "/bru.webp", "/dogtreats.jpeg", "/shop.webp"],
+  address_text: "410 W 1st St #104, Tempe, AZ 85281",
+  address_link: "https://maps.app.goo.gl/Ztxx4ZxxPG5SRg33A",
+  address_enabled: true,
+  google_url: "https://share.google/ywUaCuyd8boFskL5d",
+  google_enabled: true,
+  instagram_url: "https://www.instagram.com/bonesandbru?igsh=NWY3Znc0OTZ4cmty",
+  instagram_enabled: true,
+  facebook_url: "https://www.facebook.com/share/14WviUCEUSy/",
+  facebook_enabled: true,
+  tiktok_url: "https://www.tiktok.com/@bonesandbru",
+  tiktok_enabled: true,
+  owner_names: "John | Charity | Bru",
+  phone: "7605096910",
+  email: "johngagne@bonesandbru.com",
+  contact_enabled: true,
+  shop_url: "https://bonesandbru.com/",
+  shop_text: "Visit Bonesandbru.com",
+  shop_enabled: true,
+  walkthrough_enabled: true,
+  review_page_url: "https://g.page/r/CUGEACVcA-PbEAE/review",
+  review_page_enabled: true,
+};
+export const getSiteProfile = () => getJSON<SiteProfile>("site-profile", DEFAULT_SITE_PROFILE);
+export const setSiteProfile = (profile: SiteProfile) => setJSON("site-profile", profile);
+
+// Carousel images
+export async function getCarouselImage(id: string): Promise<{ data: ArrayBuffer; contentType: string } | null> {
+  const s = store();
+  const result = await s.getWithMetadata(`carousel-image-${id}`, { type: "arrayBuffer" });
+  if (!result || !result.data) return null;
+  return { data: result.data as ArrayBuffer, contentType: (result.metadata as any)?.content_type || "image/webp" };
+}
+export async function setCarouselImage(id: string, data: ArrayBuffer, contentType: string): Promise<void> {
+  const s = store();
+  await s.set(`carousel-image-${id}`, new Uint8Array(data), { metadata: { content_type: contentType } });
+}
+export async function deleteCarouselImage(id: string): Promise<void> {
+  const s = store();
+  try { await s.delete(`carousel-image-${id}`); } catch {}
+}
+
+// Logo image
+export async function getLogoImage(): Promise<{ data: ArrayBuffer; contentType: string } | null> {
+  const s = store();
+  const result = await s.getWithMetadata("logo-image", { type: "arrayBuffer" });
+  if (!result || !result.data) return null;
+  return { data: result.data as ArrayBuffer, contentType: (result.metadata as any)?.content_type || "image/webp" };
+}
+export async function setLogoImage(data: ArrayBuffer, contentType: string): Promise<void> {
+  const s = store();
+  await s.set("logo-image", new Uint8Array(data), { metadata: { content_type: contentType } });
+}
+export async function deleteLogoImage(): Promise<void> {
+  const s = store();
+  try { await s.delete("logo-image"); } catch {}
+}
+
+// Walkthrough video
+export async function getWalkthroughVideo(): Promise<{ data: ArrayBuffer; contentType: string } | null> {
+  const s = store();
+  const result = await s.getWithMetadata("walkthrough-video", { type: "arrayBuffer" });
+  if (!result || !result.data) return null;
+  return { data: result.data as ArrayBuffer, contentType: (result.metadata as any)?.content_type || "video/mp4" };
+}
+export async function setWalkthroughVideo(data: ArrayBuffer, contentType: string): Promise<void> {
+  const s = store();
+  await s.set("walkthrough-video", new Uint8Array(data), { metadata: { content_type: contentType } });
+}
+export async function deleteWalkthroughVideo(): Promise<void> {
+  const s = store();
+  try { await s.delete("walkthrough-video"); } catch {}
+}
+
+// Backup blobs for profile media (stored separately to avoid size limits)
+export const getBackupCarouselImages = () => getJSON<Record<string, { data: string; content_type: string }>>("backup-carousel-images", {});
+export const setBackupCarouselImages = (images: Record<string, { data: string; content_type: string }>) => setJSON("backup-carousel-images", images);
+export const getBackupLogoImage = () => getJSON<{ data: string; content_type: string } | null>("backup-logo-image", null);
+export const setBackupLogoImage = (image: { data: string; content_type: string } | null) => setJSON("backup-logo-image", image);
+export const getBackupWalkthroughVideo = () => getJSON<{ data: string; content_type: string } | null>("backup-walkthrough-video", null);
+export const setBackupWalkthroughVideo = (video: { data: string; content_type: string } | null) => setJSON("backup-walkthrough-video", video);
 
 /** Migrate single owner_google_email → google_accounts array */
 export async function ensureMigrated(config: AppConfig): Promise<AppConfig> {

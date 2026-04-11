@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Search, Plus, Minus, X, Gift, UserPlus, User } from "lucide-react";
+import { Search, Plus, Minus, X, Gift, UserPlus, User, ChevronLeft, ChevronRight } from "lucide-react";
 import { fetchMenu, fetchCustomers, createOrder, checkRewards, getMenuImageUrl } from "../../lib/api";
 import type { MenuItem, Customer, OrderItem } from "../../lib/types";
 import { deriveCategories, categoryLabel, REWARD_THRESHOLD } from "../../lib/constants";
@@ -35,6 +35,38 @@ export default function POSTab({ onOrderCreated, addToast }: Props) {
   const [creatingCustomer, setCreatingCustomer] = useState(false);
 
   const categories = useMemo(() => deriveCategories(menu), [menu]);
+  const catScrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const checkCatScroll = useCallback(() => {
+    const el = catScrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 0);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+  }, []);
+
+  useEffect(() => {
+    const el = catScrollRef.current;
+    if (!el) return;
+    checkCatScroll();
+    el.addEventListener("scroll", checkCatScroll, { passive: true });
+    const ro = new ResizeObserver(checkCatScroll);
+    ro.observe(el);
+    return () => { el.removeEventListener("scroll", checkCatScroll); ro.disconnect(); };
+  }, [categories, checkCatScroll]);
+
+  const scrollCats = (dir: "left" | "right") => {
+    const el = catScrollRef.current;
+    if (!el) return;
+    if (dir === "right" && el.scrollLeft + el.clientWidth >= el.scrollWidth - 1) {
+      el.scrollTo({ left: 0, behavior: "smooth" });
+    } else if (dir === "left" && el.scrollLeft <= 0) {
+      el.scrollTo({ left: el.scrollWidth, behavior: "smooth" });
+    } else {
+      el.scrollBy({ left: dir === "left" ? -150 : 150, behavior: "smooth" });
+    }
+  };
 
   useEffect(() => {
     fetchMenu().then((data) => {
@@ -242,23 +274,41 @@ export default function POSTab({ onOrderCreated, addToast }: Props) {
       .join("; ");
 
   return (
-    <div className="grid md:grid-cols-5 gap-4">
+    <div className="grid md:grid-cols-5 gap-4 overflow-hidden">
       {/* Left: Menu Grid */}
-      <div className="md:col-span-3">
-        <div className="sticky top-0 z-10 bg-[var(--bg-color)] flex gap-2 mb-3 pb-3 overflow-x-auto">
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
-              className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all ${
-                activeCategory === cat
-                  ? "bg-brand-olive text-white shadow-md"
-                  : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400"
-              }`}
-            >
-              {categoryLabel(cat)}
-            </button>
-          ))}
+      <div className="md:col-span-3 min-w-0">
+        <div className="sticky top-0 z-10 bg-[var(--bg-color)] mb-3 pb-1">
+          <div
+            ref={catScrollRef}
+            className="flex gap-2 overflow-x-auto scrollbar-hide pb-2"
+          >
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setActiveCategory(cat)}
+                className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all ${
+                  activeCategory === cat
+                    ? "bg-brand-olive text-white shadow-md"
+                    : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400"
+                }`}
+              >
+                {categoryLabel(cat)}
+              </button>
+            ))}
+          </div>
+          {(canScrollLeft || canScrollRight) && (
+            <div className="flex justify-center">
+              <div className="inline-flex items-center bg-brand-olive/10 rounded-full px-2 py-0.5 gap-1">
+                <button onClick={() => scrollCats("left")} className="text-brand-olive disabled:opacity-30" disabled={!canScrollLeft}>
+                  <ChevronLeft className="w-3 h-3" />
+                </button>
+                <span className="text-[9px] font-bold text-brand-olive uppercase tracking-wider">scroll</span>
+                <button onClick={() => scrollCats("right")} className="text-brand-olive disabled:opacity-30" disabled={!canScrollRight}>
+                  <ChevronRight className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 auto-rows-fr">
@@ -267,7 +317,7 @@ export default function POSTab({ onOrderCreated, addToast }: Props) {
               key={item.id}
               whileTap={{ scale: 0.97 }}
               onClick={() => handleSelectItem(item)}
-              className="h-full p-3 rounded-xl bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 text-left hover:shadow-md transition-all flex flex-col"
+              className="h-full p-2 sm:p-3 rounded-xl bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 text-left hover:shadow-md transition-all flex flex-col"
             >
               {item.has_image && (
                 <img
@@ -300,7 +350,7 @@ export default function POSTab({ onOrderCreated, addToast }: Props) {
       </div>
 
       {/* Right: Cart + Customer */}
-      <div className="md:col-span-2 flex flex-col gap-3">
+      <div className="md:col-span-2 min-w-0 flex flex-col gap-3">
         {/* Customer lookup */}
         <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-300 dark:border-stone-700 p-4">
           <h3 className="font-bold text-xs text-stone-500 uppercase tracking-wider mb-2">

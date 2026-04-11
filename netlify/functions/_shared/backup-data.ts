@@ -20,6 +20,10 @@ import {
   setPersistentCodes,
   setAnalytics,
   getAnalytics,
+  setSiteProfile,
+  setCarouselImage,
+  setLogoImage,
+  setWalkthroughVideo,
 } from "./store.js";
 import { ensureMenuPresets, syncActiveMenuPreset } from "./menu-presets.js";
 import { normalizeMenuSortOrders } from "./menu-sort.js";
@@ -162,6 +166,10 @@ export async function restoreBackupData(
     if (!imported.published_menu_ordering) imported.published_menu_ordering = false;
     imported.published_images = false;
     imported.persistent_codes = false;
+    imported.site_profile = false;
+    imported.carousel_images = 0;
+    imported.logo_image = false;
+    imported.walkthrough_video = false;
     imported.images = await restoreImages(body.images, false);
     await syncActiveMenuPreset();
     return imported;
@@ -232,6 +240,47 @@ export async function restoreBackupData(
 
   if (!body.menu_presets) {
     await ensureMenuPresets(true);
+  }
+
+  // Restore site profile
+  if (body.site_profile && typeof body.site_profile === "object" && !Array.isArray(body.site_profile)) {
+    await setSiteProfile(body.site_profile);
+    imported.site_profile = true;
+  }
+
+  // Restore carousel images
+  let carouselCount = 0;
+  if (body.carousel_images && typeof body.carousel_images === "object" && !Array.isArray(body.carousel_images)) {
+    for (const [id, imgData] of Object.entries(body.carousel_images) as [string, any][]) {
+      if (!imgData?.data || !imgData?.content_type) continue;
+      try {
+        const buffer = Buffer.from(imgData.data, "base64");
+        const arrayBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+        await setCarouselImage(id, arrayBuffer, imgData.content_type);
+        carouselCount++;
+      } catch {}
+    }
+  }
+  imported.carousel_images = carouselCount;
+
+  // Restore logo image
+  if (body.logo_image && typeof body.logo_image === "object" && body.logo_image.data) {
+    try {
+      const buffer = Buffer.from(body.logo_image.data, "base64");
+      const arrayBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+      await setLogoImage(arrayBuffer, body.logo_image.content_type);
+      imported.logo_image = true;
+    } catch {}
+  }
+
+  // Restore walkthrough video
+  if (body.walkthrough_video && typeof body.walkthrough_video === "object" && body.walkthrough_video.data) {
+    try {
+      const buffer = Buffer.from(body.walkthrough_video.data, "base64");
+      const arrayBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+      await setWalkthroughVideo(arrayBuffer, body.walkthrough_video.content_type);
+      imported.walkthrough_video = true;
+    } catch {}
   }
 
   return imported;
